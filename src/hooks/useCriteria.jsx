@@ -1,5 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
-import { useState, useEffect, useCallback, createContext, useContext } from 'react'
+import { useState, useEffect, useCallback, useRef, createContext, useContext } from 'react'
+import useAuth from './useAuth'
+import { writeCriteria, fetchCriteria } from '../lib/pdsSync'
 
 const STORAGE_KEY = 'shelfwise-criteria'
 const CriteriaContext = createContext()
@@ -23,10 +25,40 @@ function load() {
 
 export function CriteriaProvider({ children }) {
   const [criteria, setCriteria] = useState(load)
+  const auth = useAuth()
+  const hasSynced = useRef(false)
 
+  // Persist to localStorage
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(criteria))
   }, [criteria])
+
+  // Sync from PDS on auth
+  useEffect(() => {
+    if (!auth?.isAuthenticated || !auth.agent || !auth.did || hasSynced.current) return
+    hasSynced.current = true
+
+    async function sync() {
+      try {
+        const pdsCriteria = await fetchCriteria(auth.agent, auth.did)
+        if (pdsCriteria && pdsCriteria.length > 0) {
+          setCriteria(pdsCriteria)
+        }
+      } catch { /* non-fatal */ }
+    }
+    sync()
+  }, [auth])
+
+  // Write to PDS after any change (debounced by effect)
+  const syncTimeout = useRef(null)
+  useEffect(() => {
+    if (!auth?.isAuthenticated || !auth.agent || !auth.did) return
+    clearTimeout(syncTimeout.current)
+    syncTimeout.current = setTimeout(() => {
+      writeCriteria(auth.agent, auth.did, criteria).catch(() => {})
+    }, 1000)
+    return () => clearTimeout(syncTimeout.current)
+  }, [criteria, auth])
 
   const addCriterion = useCallback((criterion) => {
     setCriteria((prev) => [...prev, { ...criterion, id: criterion.id ?? crypto.randomUUID() }])

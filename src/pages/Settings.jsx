@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import useSettings from '../hooks/useSettings'
 import useCriteria from '../hooks/useCriteria'
 import useBooks from '../hooks/useBooks'
+import useAuth from '../hooks/useAuth'
 import Button from '../components/ui/Button'
 import Pill from '../components/ui/Pill'
 import Stars from '../components/ui/Stars'
@@ -82,6 +83,7 @@ export default function Settings({ onLogout }) {
   const { settings, updateSetting } = useSettings()
   const { criteria, addCriterion, updateCriterion, removeCriterion, reorderCriteria } = useCriteria()
   const { books, importBooks } = useBooks()
+  const { isAuthenticated, did, handle: authHandle, signOut } = useAuth()
 
   const [activeTab, setActiveTab] = useState('General')
 
@@ -800,6 +802,25 @@ export default function Settings({ onLogout }) {
 
       {/* ======================== FOOTER ======================== */}
       <div className="mt-12 pt-6 border-t border-gray-200 dark:border-gray-700">
+        {/* AT Protocol account info */}
+        {isAuthenticated && (
+          <div className="mb-6 p-4 border border-indigo-200 dark:border-indigo-800 rounded-lg bg-indigo-50 dark:bg-indigo-950">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  Signed in as <span className="font-semibold text-indigo-600 dark:text-indigo-400">@{authHandle}</span>
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 font-mono">
+                  {did}
+                </p>
+                <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                  Books syncing to your PDS
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500 dark:text-gray-400">
           <div>
             {maskedApiKey ? (
@@ -821,16 +842,20 @@ export default function Settings({ onLogout }) {
 
         <div className="mt-6">
           <button
-            onClick={() => {
-              if (window.confirm('Are you sure you want to log out? Your library data will be kept.')) {
-                localStorage.removeItem('shelfwise-onboarded')
-                onLogout?.()
+            onClick={async () => {
+              if (window.confirm('Are you sure you want to log out? Your library data will be kept locally.')) {
+                if (isAuthenticated) {
+                  await signOut()
+                } else {
+                  localStorage.removeItem('shelfwise-onboarded')
+                  onLogout?.()
+                }
               }
             }}
             className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
           >
             <LogOut size={16} />
-            Log Out
+            {isAuthenticated ? 'Sign Out' : 'Log Out'}
           </button>
         </div>
       </div>

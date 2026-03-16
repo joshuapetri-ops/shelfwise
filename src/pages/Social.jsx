@@ -2,10 +2,10 @@ import { useState } from 'react'
 import Avatar from '../components/ui/Avatar'
 import BookCover from '../components/ui/BookCover'
 import Pill from '../components/ui/Pill'
-import Button from '../components/ui/Button'
 import { mockActivity } from '../lib/mockData'
 import useBooks from '../hooks/useBooks'
-import { Users, BookOpen } from 'lucide-react'
+import useSocialFeed from '../hooks/useSocialFeed'
+import { Users, BookOpen, Loader2, Wifi } from 'lucide-react'
 
 const FILTERS = [
   { label: 'All', match: null },
@@ -30,12 +30,16 @@ const SHELF_COLORS = {
 
 export default function Social() {
   const { books, addBook } = useBooks()
+  const { events: liveEvents, loading: feedLoading, isLive } = useSocialFeed()
   const [activeFilter, setActiveFilter] = useState('All')
+
+  // Use live feed when available, fall back to mock data
+  const activity = isLive && liveEvents.length > 0 ? liveEvents : mockActivity
 
   const filtered =
     activeFilter === 'All'
-      ? mockActivity
-      : mockActivity.filter(
+      ? activity
+      : activity.filter(
           (a) => a.action === FILTERS.find((f) => f.label === activeFilter)?.match,
         )
 
@@ -61,6 +65,13 @@ export default function Social() {
       <div className="flex items-center gap-3 mb-6">
         <Users className="w-7 h-7 text-indigo-600 dark:text-indigo-400" />
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Social</h1>
+        {isLive && (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+            <Wifi size={10} />
+            Live
+          </span>
+        )}
+        {feedLoading && <Loader2 size={16} className="animate-spin text-gray-400" />}
       </div>
 
       {/* Filter pills */}
