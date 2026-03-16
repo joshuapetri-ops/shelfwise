@@ -1,10 +1,10 @@
 {
-  "client_id": "https://shelfwise.xyz/client-metadata.json",
+  "client_id": "https://www.shelfwise.xyz/client-metadata.json",
   "client_name": "Shelfwise",
-  "client_uri": "https://shelfwise.xyz",
-  "logo_uri": "https://shelfwise.xyz/favicon.svg",
+  "client_uri": "https://www.shelfwise.xyz",
+  "logo_uri": "https://www.shelfwise.xyz/favicon.svg",
   "redirect_uris": [
-    "https://shelfwise.xyz/oauth/callback"
+    "https://www.shelfwise.xyz/oauth/callback"
   ],
   "response_types": ["code"],
   "grant_types": ["authorization_code", "refresh_token"],
