@@ -24,7 +24,6 @@ export function BooksProvider({ children }) {
     if (!safeKey) return // guard: never allow a null key
 
     setBooks((prev) => {
-      console.log('addBook called:', book.title, 'key:', safeKey, 'existing books:', prev.length)
       const existingIndex = prev.findIndex((b) => b.key === safeKey)
       if (existingIndex !== -1) {
         // Book already exists — update the shelf if provided

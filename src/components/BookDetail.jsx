@@ -7,6 +7,7 @@ import Pill from './ui/Pill';
 import Button from './ui/Button';
 import { computeComposite, formatComposite, compositeColor, compositeBg } from '../lib/compositeScore';
 import { buildAcquireLinks } from '../lib/purchaseLinks';
+import useBooks from '../hooks/useBooks';
 import useChallenges from '../hooks/useChallenges';
 import { ExternalLink, Trash2, Plus } from 'lucide-react';
 
@@ -20,7 +21,10 @@ const SHELVES = [
 export default function BookDetail({ book, isOpen, onClose, onUpdate, onRemove, criteria, libraryCode }) {
   const [notes, setNotes] = useState(book.notes ?? '');
   const [newTag, setNewTag] = useState('');
+  const { books, addBook } = useBooks();
   const { challenges } = useChallenges();
+
+  const bookExistsInLibrary = books.some((b) => b.key === book.key);
 
   const matchingChallenge = useMemo(() => {
     if (book.shelf !== 'read' || !book.addedAt) return null;
@@ -32,7 +36,11 @@ export default function BookDetail({ book, isOpen, onClose, onUpdate, onRemove, 
 
   /* ── Shelf ── */
   function handleShelfChange(shelfKey) {
-    onUpdate(book.key, { shelf: shelfKey });
+    if (bookExistsInLibrary) {
+      onUpdate(book.key, { shelf: shelfKey });
+    } else {
+      addBook({ ...book, shelf: shelfKey });
+    }
   }
 
   /* ── Ratings ── */
@@ -117,7 +125,11 @@ export default function BookDetail({ book, isOpen, onClose, onUpdate, onRemove, 
                 <button
                   key={key}
                   type="button"
-                  onClick={() => handleShelfChange(key)}
+                  onMouseDown={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    handleShelfChange(key)
+                  }}
                   className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
                     isActive
                       ? 'bg-indigo-600 text-white dark:bg-indigo-500'
