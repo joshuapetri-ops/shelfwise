@@ -62,42 +62,39 @@ export async function searchBooks(query, { limit = 20, language } = {}) {
 
   const olLang = toOlLang(language);
 
-  // Try with language filter first
-  let results = await searchOL(query, limit, olLang);
+  try {
+    // Try with language filter first
+    let results = await searchOL(query, limit, olLang);
 
-  // If language-filtered search returned nothing and we used a filter, try without
-  if (results.length === 0 && olLang !== 'eng') {
-    results = await searchOL(query, limit, null);
+    // If language-filtered search returned nothing, try without the filter
+    if (results.length === 0) {
+      results = await searchOL(query, limit, null);
+    }
+
+    if (results.length > 0) return results;
+  } catch (err) {
+    console.warn('Open Library search failed, falling back to Claude:', err.message);
   }
 
-  // If still no results, try without any language filter
-  if (results.length === 0 && olLang === 'eng') {
-    results = await searchOL(query, limit, null);
-  }
-
-  if (results.length > 0) return results;
-
-  // Fallback: ask Claude for book info when OL has nothing
+  // Fallback: ask Claude for book info when OL fails or has nothing
   return searchWithClaude(query, limit);
 }
 
 async function searchOL(query, limit, langCode) {
-  const fullQuery = langCode
+  const q = langCode
     ? `${query.trim()} language:${langCode}`
     : query.trim();
 
-  const params = new URLSearchParams({
-    q: fullQuery,
+  const url = `${BASE_URL}/search.json?` + new URLSearchParams({
+    q,
     limit: String(limit),
     fields: "key,title,author_name,first_publish_year,cover_i,isbn,subject",
-  });
+  }).toString();
 
-  const response = await fetch(`${BASE_URL}/search.json?${params}`);
+  const response = await fetch(url);
 
   if (!response.ok) {
-    throw new Error(
-      `Open Library search failed: ${response.status} ${response.statusText}`
-    );
+    throw new Error(`OL returned ${response.status}`);
   }
 
   const data = await response.json();
