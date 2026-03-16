@@ -119,40 +119,46 @@ export default function Search({ onBookClick }) {
             return (
               <div
                 key={id}
-                role="button"
-                tabIndex={0}
-                onClick={() => handleCardClick(book)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault()
-                    handleCardClick(book)
-                  }
-                }}
-                className="flex flex-col items-center rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 shadow-sm cursor-pointer transition hover:shadow-md active:scale-[0.98]"
+                className="flex flex-col items-center rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 shadow-sm transition hover:shadow-md"
               >
-                <BookCover
-                  coverId={book.coverId}
-                  isbn={book.isbn}
-                  title={book.title}
-                  size="M"
-                />
-                <div className="mt-3 w-full text-center">
-                  <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 line-clamp-2">
-                    {book.title}
-                  </h3>
-                  {book.author && (
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
-                      {book.author}
-                    </p>
-                  )}
-                  {book.year && (
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-                      {book.year}
-                    </p>
-                  )}
+                {/* Clickable area: cover + text open detail modal */}
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => handleCardClick(book)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      handleCardClick(book)
+                    }
+                  }}
+                  className="cursor-pointer w-full flex flex-col items-center"
+                >
+                  <BookCover
+                    coverId={book.coverId}
+                    isbn={book.isbn}
+                    title={book.title}
+                    size="M"
+                  />
+                  <div className="mt-3 w-full text-center">
+                    <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 line-clamp-2">
+                      {book.title}
+                    </h3>
+                    {book.author && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+                        {book.author}
+                      </p>
+                    )}
+                    {book.year && (
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                        {book.year}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
-                <div className="mt-3 w-full flex justify-center" onClick={(e) => e.stopPropagation()}>
+                {/* Shelf buttons — separate from the card click area */}
+                <div className="mt-3 w-full flex justify-center">
                   {existing ? (
                     <Pill color={shelfColor(existing.shelf)}>
                       <Check size={12} className="mr-0.5" />
@@ -162,8 +168,7 @@ export default function Search({ onBookClick }) {
                     <div className="relative">
                       <Button
                         size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation()
+                        onClick={() => {
                           console.log('DROPDOWN TOGGLED for:', book.title)
                           setOpenDropdown(openDropdown === id ? null : id)
                         }}
@@ -178,7 +183,6 @@ export default function Search({ onBookClick }) {
                               key={opt.value}
                               onMouseDown={(e) => {
                                 e.preventDefault()
-                                e.stopPropagation()
                                 console.log('SHELF OPTION CLICKED:', book.title, opt.value)
                                 handleAddWithShelf(book, opt.value)
                               }}
