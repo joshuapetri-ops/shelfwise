@@ -118,6 +118,27 @@ async function searchOL(query, limit, langCode) {
   return deduplicateResults(mapDocs(data.docs));
 }
 
+async function enrichWithCovers(results) {
+  return Promise.all(results.map(async (book) => {
+    if (book.isbn) {
+      try {
+        const olRes = await fetch(
+          `${BASE_URL}/search.json?isbn=${book.isbn}&fields=key,cover_i&limit=1`
+        );
+        const olData = await olRes.json();
+        if (olData.docs?.[0]) {
+          return {
+            ...book,
+            coverId: olData.docs[0].cover_i || null,
+            key: olData.docs[0].key || book.key,
+          };
+        }
+      } catch { /* ignore enrichment failures */ }
+    }
+    return book;
+  }));
+}
+
 async function searchWithClaude(query, limit) {
   try {
     const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
@@ -136,7 +157,16 @@ async function searchWithClaude(query, limit) {
         max_tokens: 800,
         messages: [{
           role: 'user',
-          content: `Find real published books matching: "${query}"\nReturn up to ${limit} actual books as a JSON array.\nEach object: title, author, year, isbn (ISBN-13 or null).\nOnly real books. No markdown fences, just the raw JSON array.`,
+          content: `Find real published books that closely match this exact search: "${query}"
+
+Rules:
+- The title must closely match the search query
+- If the query includes an author name, the results MUST be by that author
+- If you don't know of any books that closely match, return an empty array []
+- Do NOT return loosely related books with similar words in the title
+- Only return books you are confident actually exist
+
+Return up to ${limit} books as a JSON array. Each object: title, author, year, isbn (ISBN-13 or null). If no close matches exist, return []. No markdown fences, just the raw JSON array.`,
         }],
       }),
     });
@@ -150,7 +180,9 @@ async function searchWithClaude(query, limit) {
     const match = clean.match(/\[[\s\S]*\]/);
     const parsed = JSON.parse(match ? match[0] : clean);
 
-    return parsed.map((b, i) => ({
+    if (!Array.isArray(parsed) || parsed.length === 0) return [];
+
+    const mapped = parsed.map((b, i) => ({
       key: '/works/ai_' + encodeURIComponent(b.title).slice(0, 20) + '_' + i,
       title: b.title,
       author: b.author || 'Unknown',
@@ -159,6 +191,8 @@ async function searchWithClaude(query, limit) {
       isbn: b.isbn || null,
       subjects: [],
     }));
+
+    return enrichWithCovers(mapped);
   } catch {
     return [];
   }
@@ -220,7 +254,7 @@ async function searchWithClaudeWeb(query) {
 
   const arr = Array.isArray(results) ? results : [results];
 
-  return arr.map((b, i) => ({
+  const mapped = arr.map((b, i) => ({
     key: '/works/web_' + encodeURIComponent(b.title || query).slice(0, 20) + '_' + i,
     title: b.title || query,
     author: b.author || 'Unknown',
@@ -229,6 +263,8 @@ async function searchWithClaudeWeb(query) {
     isbn: b.isbn || null,
     subjects: [],
   }));
+
+  return enrichWithCovers(mapped);
 }
 
 /**
