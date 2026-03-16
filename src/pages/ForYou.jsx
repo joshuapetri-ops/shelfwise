@@ -50,22 +50,22 @@ export default function ForYou() {
           For You
         </h1>
         <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md">
-          AI-powered recommendations require an Anthropic API key. Add{' '}
-          <code className="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-sm font-mono">
-            VITE_ANTHROPIC_API_KEY
-          </code>{' '}
-          to your{' '}
-          <code className="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-sm font-mono">
-            .env.local
-          </code>{' '}
-          file, then configure it in Settings.
+          AI-powered book recommendations are coming soon. In the meantime, discover books through search or see what your friends are reading.
         </p>
-        <a
-          href="/settings"
-          className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600"
-        >
-          Go to Settings
-        </a>
+        <div className="flex gap-3">
+          <a
+            href="/search"
+            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600"
+          >
+            Search Books
+          </a>
+          <a
+            href="/social"
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 transition hover:bg-gray-50 dark:hover:bg-gray-800"
+          >
+            Social Feed
+          </a>
+        </div>
       </div>
     )
   }

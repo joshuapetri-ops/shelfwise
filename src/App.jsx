@@ -10,6 +10,7 @@ import ForYou from './pages/ForYou'
 import Settings from './pages/Settings'
 import Onboarding from './pages/Onboarding'
 import OAuthCallback from './pages/OAuthCallback'
+import Profile from './pages/Profile'
 import useBooks from './hooks/useBooks'
 import useCriteria from './hooks/useCriteria'
 import useSettings from './hooks/useSettings'
@@ -84,6 +85,7 @@ export default function App() {
           />
           <Route path="/search" element={<Search onBookClick={openDetail} />} />
           <Route path="/social" element={<Social />} />
+          <Route path="/profile/:handle" element={<Profile />} />
           <Route path="/challenges" element={<Challenges />} />
           <Route path="/for-you" element={<ForYou />} />
           <Route path="/oauth/callback" element={<OAuthCallback />} />

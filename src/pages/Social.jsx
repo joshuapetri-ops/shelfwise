@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import Avatar from '../components/ui/Avatar'
 import BookCover from '../components/ui/BookCover'
 import Pill from '../components/ui/Pill'
@@ -124,18 +125,21 @@ export default function Social() {
           {userResults.length > 0 && (
             <ul className="space-y-2 mb-4">
               {userResults.map((user) => (
-                <li
-                  key={user.did}
-                  className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900"
-                >
-                  <Avatar name={user.displayName} src={user.avatar} size="sm" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{user.displayName}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">@{user.handle}</p>
-                    {user.description && (
-                      <p className="text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5">{user.description}</p>
-                    )}
-                  </div>
+                <li key={user.did}>
+                  <Link
+                    to={`/profile/${user.handle}`}
+                    className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors"
+                  >
+                    <Avatar name={user.displayName} src={user.avatar} size="sm" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{user.displayName}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">@{user.handle}</p>
+                      {user.description && (
+                        <p className="text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5">{user.description}</p>
+                      )}
+                    </div>
+                    <span className="text-xs text-indigo-600 dark:text-indigo-400 shrink-0">View books</span>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -201,14 +205,20 @@ export default function Social() {
             >
               {/* User row */}
               <div className="flex items-center gap-3 mb-3">
-                <Avatar name={item.user.name} src={item.user.avatar} size="sm" />
+                <Link to={`/profile/${item.user.handle}`}>
+                  <Avatar name={item.user.name} src={item.user.avatar} size="sm" />
+                </Link>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
-                    {item.user.name}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                    @{item.user.handle}
-                  </p>
+                  <Link to={`/profile/${item.user.handle}`} className="hover:underline">
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                      {item.user.name}
+                    </p>
+                  </Link>
+                  <Link to={`/profile/${item.user.handle}`} className="hover:underline">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                      @{item.user.handle}
+                    </p>
+                  </Link>
                 </div>
                 <span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
                   {item.timestamp}

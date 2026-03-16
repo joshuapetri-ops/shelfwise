@@ -5,7 +5,7 @@ import Pill from '../components/ui/Pill'
 import { searchBooks } from '../api/openLibrary'
 import useBooks from '../hooks/useBooks'
 import useSettings from '../hooks/useSettings'
-import { Search as SearchIcon, Check } from 'lucide-react'
+import { Search as SearchIcon, Check, Share2 } from 'lucide-react'
 
 const SHELF_LABELS = {
   wantToRead: 'Want to Read',
@@ -164,10 +164,23 @@ export default function Search({ onBookClick }) {
                 {/* Shelf buttons — direct, no dropdown */}
                 <div className="mt-3 w-full flex justify-center">
                   {existing ? (
-                    <Pill color={SHELF_COLORS[existing.shelf] ?? 'gray'}>
-                      <Check size={12} className="mr-0.5" />
-                      {SHELF_LABELS[existing.shelf] ?? existing.shelf}
-                    </Pill>
+                    <div className="flex items-center gap-2">
+                      <Pill color={SHELF_COLORS[existing.shelf] ?? 'gray'}>
+                        <Check size={12} className="mr-0.5" />
+                        {SHELF_LABELS[existing.shelf] ?? existing.shelf}
+                      </Pill>
+                      <button
+                        onClick={() => window.open(
+                          'https://bsky.app/intent/compose?text=' + encodeURIComponent(
+                            `"${book.title}" by ${book.author} 📖\nhttps://www.shelfwise.xyz`
+                          ), '_blank'
+                        )}
+                        className="p-1.5 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                        title="Share on Bluesky"
+                      >
+                        <Share2 size={14} />
+                      </button>
+                    </div>
                   ) : (
                     <div className="flex flex-wrap gap-1.5 justify-center">
                       <button
