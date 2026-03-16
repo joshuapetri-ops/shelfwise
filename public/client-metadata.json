@@ -4,8 +4,7 @@
   "client_uri": "https://shelfwise-wine.vercel.app",
   "logo_uri": "https://shelfwise-wine.vercel.app/favicon.svg",
   "redirect_uris": [
-    "https://shelfwise-wine.vercel.app/oauth/callback",
-    "http://127.0.0.1:5173/oauth/callback"
+    "https://shelfwise-wine.vercel.app/oauth/callback"
   ],
   "response_types": ["code"],
   "grant_types": ["authorization_code", "refresh_token"],
