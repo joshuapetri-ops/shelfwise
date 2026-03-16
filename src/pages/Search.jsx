@@ -26,6 +26,7 @@ export default function Search({ onBookClick }) {
   const { settings } = useSettings()
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(false)
+  const [loadingMessage, setLoadingMessage] = useState(null)
   const [error, setError] = useState(null)
   const [searched, setSearched] = useState(false)
 
@@ -40,16 +41,21 @@ export default function Search({ onBookClick }) {
   const handleSearch = async (query) => {
     if (!query.trim()) return
     setLoading(true)
+    setLoadingMessage(null)
     setError(null)
     setSearched(true)
     try {
-      const data = await searchBooks(query, { language: settings.language })
+      const data = await searchBooks(query, {
+        language: settings.language,
+        onProgress: (msg) => setLoadingMessage(msg),
+      })
       setResults(data)
     } catch {
       setError('Failed to search books. Please try again.')
       setResults([])
     } finally {
       setLoading(false)
+      setLoadingMessage(null)
     }
   }
 
@@ -78,8 +84,13 @@ export default function Search({ onBookClick }) {
       </div>
 
       {loading && (
-        <div className="flex justify-center py-12">
+        <div className="flex flex-col items-center justify-center py-12 gap-3">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 dark:border-indigo-400" />
+          {loadingMessage && (
+            <p className="text-sm text-gray-500 dark:text-gray-400 animate-pulse">
+              {loadingMessage}
+            </p>
+          )}
         </div>
       )}
 

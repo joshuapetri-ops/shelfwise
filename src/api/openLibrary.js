@@ -55,7 +55,7 @@ function mapDocs(docs) {
  * @param {string} [options.language] - 2-letter or 3-letter language code.
  * @returns {Promise<Array>}
  */
-export async function searchBooks(query, { limit = 20, language } = {}) {
+export async function searchBooks(query, { limit = 20, language, onProgress } = {}) {
   if (!query || !query.trim()) {
     return [];
   }
@@ -78,6 +78,7 @@ export async function searchBooks(query, { limit = 20, language } = {}) {
 
   // Fallback 1: ask Claude for book info from training knowledge
   console.log('OL search: 0 results, trying Claude knowledge...');
+  onProgress?.('Not found in Open Library. Searching deeper...');
   try {
     const claudeResults = await searchWithClaude(query, limit);
     if (claudeResults.length > 0) return claudeResults;
@@ -87,6 +88,7 @@ export async function searchBooks(query, { limit = 20, language } = {}) {
 
   // Fallback 2: Claude with web search for very recent books
   console.log('Claude knowledge: 0 results, trying web search...');
+  onProgress?.('Searching the web for recent releases...');
   try {
     const webResults = await searchWithClaudeWeb(query);
     if (webResults.length > 0) return webResults;
@@ -226,8 +228,11 @@ async function searchWithClaudeWeb(query) {
   const step1Data = await step1.json();
   console.log('Web search step 1 complete, formatting...');
 
+  // Wait 2 seconds before the formatting call to avoid rate limit
+  await new Promise((resolve) => setTimeout(resolve, 2000));
+
   // Step 2: pass the web search response back and ask for clean JSON
-  const step2 = await fetch('https://api.anthropic.com/v1/messages', {
+  const step2Options = {
     method: 'POST',
     headers,
     body: JSON.stringify({
@@ -239,9 +244,16 @@ async function searchWithClaudeWeb(query) {
         { role: 'user', content: 'Now return ONLY a JSON array containing one object with: title, author, year, isbn. No markdown fences, no explanation, just the raw JSON array.' },
       ],
     }),
-  });
+  };
 
-  const step2Data = await step2.json();
+  let step2Resp = await fetch('https://api.anthropic.com/v1/messages', step2Options);
+  if (step2Resp.status === 429) {
+    console.log('Rate limited, retrying in 3 seconds...');
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    step2Resp = await fetch('https://api.anthropic.com/v1/messages', step2Options);
+  }
+
+  const step2Data = await step2Resp.json();
   const text = (step2Data.content || [])
     .filter((b) => b.type === 'text')
     .map((b) => b.text)
