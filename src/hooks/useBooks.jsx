@@ -21,8 +21,26 @@ export function BooksProvider({ children }) {
 
   const addBook = useCallback((book) => {
     setBooks((prev) => {
-      if (prev.some((b) => b.key === book.key)) return prev
-      return [...prev, { ...book, addedAt: book.addedAt ?? new Date().toISOString() }]
+      const existingIndex = prev.findIndex((b) => b.key === book.key)
+      if (existingIndex !== -1) {
+        // Book already exists — update the shelf if provided
+        if (book.shelf) {
+          return prev.map((b, i) =>
+            i === existingIndex ? { ...b, shelf: book.shelf } : b
+          )
+        }
+        return prev
+      }
+      // New book — append to existing array
+      return [
+        ...prev,
+        {
+          ...book,
+          ratings: book.ratings || {},
+          notes: book.notes || '',
+          addedAt: book.addedAt || new Date().toISOString(),
+        },
+      ]
     })
   }, [])
 

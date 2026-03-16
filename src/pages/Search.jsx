@@ -53,7 +53,13 @@ export default function Search({ onBookClick }) {
   }
 
   const handleSelect = (book) => {
-    addBook({ ...book, shelf: 'wantToRead' })
+    // Open the book detail modal directly for autocomplete selections
+    const existing = findInLibrary(book)
+    if (existing) {
+      onBookClick?.(existing)
+    } else {
+      onBookClick?.(book)
+    }
   }
 
   const handleAddWithShelf = (book, shelf) => {

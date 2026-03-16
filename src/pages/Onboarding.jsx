@@ -69,7 +69,7 @@ function StepWelcome({ onCreateAccount, onSignIn }) {
       </div>
       <p className="mt-8 text-xs text-gray-400 dark:text-gray-500">Powered by the AT Protocol</p>
       <p className="mt-2 text-[11px] text-gray-300 dark:text-gray-600">
-        Vibe coded by Josh Petri with the help of Claude
+        Vibecoded by Josh Petri with the help of Claude
       </p>
     </div>
   );
@@ -263,7 +263,7 @@ function StepFindReaders({ followedUsers, setFollowedUsers, onNext }) {
         <Button size="sm" variant="secondary" onClick={followAll}>
           Follow All
         </Button>
-        <Button size="sm" variant="ghost" onClick={skipAll}>
+        <Button size="sm" variant="ghost" onClick={() => { skipAll(); onNext(); }}>
           Skip
         </Button>
       </div>
