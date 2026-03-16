@@ -85,8 +85,8 @@ export default function Settings({ onLogout }) {
   const [shareActivity, setShareActivity] = useState(false)
   const [showInDiscovery, setShowInDiscovery] = useState(false)
 
-  const maskedApiKey = import.meta.env.VITE_CLAUDE_API_KEY
-    ? '****' + String(import.meta.env.VITE_CLAUDE_API_KEY).slice(-4)
+  const maskedApiKey = import.meta.env.VITE_ANTHROPIC_API_KEY
+    ? '****' + String(import.meta.env.VITE_ANTHROPIC_API_KEY).slice(-4)
     : null
 
   // --- Criteria handlers ---
@@ -749,7 +749,7 @@ export default function Settings({ onLogout }) {
             ) : (
               <span>
                 API Key: <span className="text-amber-600 dark:text-amber-400">Not configured</span>
-                <span className="ml-1">&mdash; set VITE_CLAUDE_API_KEY in .env.local</span>
+                <span className="ml-1">&mdash; set VITE_ANTHROPIC_API_KEY in .env.local for AI recommendations</span>
               </span>
             )}
           </div>
