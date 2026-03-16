@@ -9,9 +9,11 @@ import Challenges from './pages/Challenges'
 import ForYou from './pages/ForYou'
 import Settings from './pages/Settings'
 import Onboarding from './pages/Onboarding'
+import OAuthCallback from './pages/OAuthCallback'
 import useBooks from './hooks/useBooks'
 import useCriteria from './hooks/useCriteria'
 import useSettings from './hooks/useSettings'
+import useAuth from './hooks/useAuth'
 
 function isOnboarded() {
   return localStorage.getItem('shelfwise-onboarded') === 'true'
@@ -21,6 +23,7 @@ export default function App() {
   const { updateBook, removeBook, importBooks } = useBooks()
   const { criteria } = useCriteria()
   const { settings } = useSettings()
+  const { isAuthenticated, loading: authLoading } = useAuth()
   const [detailBook, setDetailBook] = useState(null)
   const [onboarded, setOnboarded] = useState(isOnboarded)
 
@@ -37,12 +40,31 @@ export default function App() {
     setDetailBook(null)
   }, [removeBook])
 
-  if (!onboarded) {
+  // Show loading while auth is initializing (handles OAuth callback)
+  if (authLoading) {
     return (
-      <Onboarding
-        onComplete={() => setOnboarded(true)}
-        importBooks={importBooks}
-      />
+      <Routes>
+        <Route path="/oauth/callback" element={<OAuthCallback />} />
+        <Route path="*" element={
+          <div className="min-h-screen flex items-center justify-center bg-white dark:bg-gray-900">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+          </div>
+        } />
+      </Routes>
+    )
+  }
+
+  if (!onboarded && !isAuthenticated) {
+    return (
+      <Routes>
+        <Route path="/oauth/callback" element={<OAuthCallback />} />
+        <Route path="*" element={
+          <Onboarding
+            onComplete={() => setOnboarded(true)}
+            importBooks={importBooks}
+          />
+        } />
+      </Routes>
     )
   }
 
@@ -64,6 +86,7 @@ export default function App() {
           <Route path="/social" element={<Social />} />
           <Route path="/challenges" element={<Challenges />} />
           <Route path="/for-you" element={<ForYou />} />
+          <Route path="/oauth/callback" element={<OAuthCallback />} />
           <Route path="/settings" element={<Settings onLogout={() => setOnboarded(false)} />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

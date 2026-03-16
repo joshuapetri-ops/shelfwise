@@ -1,0 +1,17 @@
+{
+  "client_id": "https://shelfwise-app.vercel.app/client-metadata.json",
+  "client_name": "Shelfwise",
+  "client_uri": "https://shelfwise-app.vercel.app",
+  "logo_uri": "https://shelfwise-app.vercel.app/favicon.svg",
+  "redirect_uris": [
+    "https://shelfwise-app.vercel.app/oauth/callback",
+    "http://localhost:5173/oauth/callback",
+    "http://127.0.0.1:5173/oauth/callback"
+  ],
+  "response_types": ["code"],
+  "grant_types": ["authorization_code", "refresh_token"],
+  "scope": "atproto transition:generic",
+  "token_endpoint_auth_method": "none",
+  "application_type": "web",
+  "dpop_bound_access_tokens": true
+}

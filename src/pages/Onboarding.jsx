@@ -1,8 +1,9 @@
 import { useCallback, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, ArrowRight, ArrowLeft, Upload, Search, Check, Users, Globe } from 'lucide-react';
+import { BookOpen, ArrowRight, ArrowLeft, Upload, Search, Check, Users, Globe, Loader2 } from 'lucide-react';
 import useBooks from '../hooks/useBooks';
 import useSettings from '../hooks/useSettings';
+import useAuth from '../hooks/useAuth';
 import { autoImport, enrichCovers } from '../lib/importers';
 import { mockUsers, mockLibraries } from '../lib/mockData';
 import Avatar from '../components/ui/Avatar';
@@ -65,7 +66,7 @@ function ProgressDots({ current, total }) {
 
 /* ─── Step 1 — Welcome ──────────────────────────────────────────── */
 
-function StepWelcome({ onCreateAccount, onSignIn }) {
+function StepWelcome({ onSignIn, onSkip }) {
   return (
     <div className="flex flex-col items-center text-center">
       <BookOpen className="w-20 h-20 text-indigo-600 dark:text-indigo-400 mb-6" strokeWidth={1.5} />
@@ -77,12 +78,12 @@ function StepWelcome({ onCreateAccount, onSignIn }) {
         Track what you read. Discover what&apos;s next.
       </p>
       <div className="flex flex-col gap-3 w-full max-w-xs">
-        <Button size="lg" className="w-full" onClick={onCreateAccount}>
-          Create Account
+        <Button size="lg" className="w-full" onClick={onSignIn}>
+          Sign in with AT Protocol
           <ArrowRight className="w-4 h-4" />
         </Button>
-        <Button size="lg" variant="secondary" className="w-full" onClick={onSignIn}>
-          Sign In
+        <Button size="lg" variant="secondary" className="w-full" onClick={onSkip}>
+          Continue without account
         </Button>
       </div>
       <p className="mt-8 text-xs text-gray-400 dark:text-gray-500">Powered by the AT Protocol</p>
@@ -95,9 +96,11 @@ function StepWelcome({ onCreateAccount, onSignIn }) {
 
 /* ─── Step 2 — Account Setup ────────────────────────────────────── */
 
-function StepAccount({ data, onChange, onNext, authMode }) {
+function StepAccount({ data, onChange, onNext }) {
   const [librarySearch, setLibrarySearch] = useState('');
-  const isSignIn = authMode === 'signin';
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState(null);
+  const { signIn } = useAuth();
 
   const filteredLibraries = librarySearch.trim()
     ? mockLibraries.filter(
@@ -115,21 +118,34 @@ function StepAccount({ data, onChange, onNext, authMode }) {
     }
   };
 
+  const handleSignIn = async () => {
+    if (!data.handle?.trim()) {
+      setAuthError('Please enter your handle');
+      return;
+    }
+    setAuthLoading(true);
+    setAuthError(null);
+    try {
+      await signIn(data.handle);
+      // Browser will redirect to PDS auth server — this line won't execute
+    } catch (err) {
+      setAuthError(err.message || 'Sign in failed. Please check your handle.');
+      setAuthLoading(false);
+    }
+  };
+
   const inputClasses = 'w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500';
 
   return (
     <div className="w-full max-w-md mx-auto">
       <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-        {isSignIn ? 'Sign in' : 'Create your account'}
+        Sign in with AT Protocol
       </h2>
       <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-        {isSignIn
-          ? 'Enter your handle and an app password to connect your AT Protocol identity.'
-          : 'This is simulated for now — real AT Protocol auth coming soon.'}
+        Enter your handle to connect your identity. You&apos;ll be redirected to your PDS to authorize Shelfwise.
       </p>
 
-      <form className="space-y-4 mb-8" onSubmit={(e) => e.preventDefault()} autoComplete="off">
-        {/* Handle */}
+      <form className="space-y-4 mb-8" onSubmit={(e) => { e.preventDefault(); handleSignIn(); }} autoComplete="off">
         <div>
           <label htmlFor="handle" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Handle</label>
           <input
@@ -137,7 +153,7 @@ function StepAccount({ data, onChange, onNext, authMode }) {
             type="text"
             value={data.handle}
             onChange={(e) => onChange({ handle: e.target.value })}
-            placeholder={isSignIn ? 'you.bsky.social or your.domain.com' : 'yourname.bsky.social'}
+            placeholder="you.bsky.social or your.domain.com"
             autoComplete="off"
             data-1p-ignore="true"
             data-lpignore="true"
@@ -149,51 +165,30 @@ function StepAccount({ data, onChange, onNext, authMode }) {
           </p>
         </div>
 
-        {/* Display name — only for create */}
-        {!isSignIn && (
-          <div>
-            <label htmlFor="displayName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Display Name</label>
-            <input
-              id="displayName"
-              type="text"
-              value={data.displayName}
-              onChange={(e) => onChange({ displayName: e.target.value })}
-              placeholder="Your Name"
-              autoComplete="off"
-              data-1p-ignore="true"
-              data-lpignore="true"
-              data-form-type="other"
-              className={inputClasses}
-            />
-          </div>
+        {authError && (
+          <p className="text-sm text-red-500 dark:text-red-400">{authError}</p>
         )}
 
-        {/* Password / App password */}
-        <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            {isSignIn ? 'App Password' : 'Password'}
-          </label>
-          <input
-            id="password"
-            type="password"
-            value={data.password}
-            onChange={(e) => onChange({ password: e.target.value })}
-            placeholder={isSignIn ? 'xxxx-xxxx-xxxx-xxxx' : 'Create a password'}
-            autoComplete="off"
-            data-1p-ignore="true"
-            data-lpignore="true"
-            data-form-type="other"
-            className={inputClasses}
-          />
-          {isSignIn && (
-            <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
-              Generate one at Settings &rarr; App Passwords in{' '}
-              <a href="https://bsky.app/settings/app-passwords" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-600 dark:hover:text-gray-300">
-                bsky.app
-              </a>
-            </p>
+        <Button size="lg" className="w-full" type="submit" disabled={authLoading}>
+          {authLoading ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Connecting...
+            </>
+          ) : (
+            <>
+              Sign in with AT Protocol
+              <ArrowRight className="w-4 h-4" />
+            </>
           )}
-        </div>
+        </Button>
+
+        <p className="text-xs text-center text-gray-400 dark:text-gray-500">
+          Don&apos;t have an account?{' '}
+          <a href="https://bsky.app" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-600 dark:hover:text-gray-300">
+            Create one at bsky.app
+          </a>
+        </p>
       </form>
 
       {/* Divider */}
@@ -279,7 +274,7 @@ function StepAccount({ data, onChange, onNext, authMode }) {
       </button>
 
       <Button size="lg" className="w-full" onClick={onNext}>
-        {isSignIn ? 'Sign In & Continue' : 'Continue'}
+        Continue
         <ArrowRight className="w-4 h-4" />
       </Button>
     </div>
@@ -555,13 +550,10 @@ export default function Onboarding({ onComplete, importBooks: importBooksProp })
   const { updateSetting } = useSettings();
 
   const [step, setStep] = useState(1);
-  const [authMode, setAuthMode] = useState('create'); // 'create' or 'signin'
 
   // Collected data
   const [accountData, setAccountData] = useState({
     handle: '',
-    displayName: '',
-    password: '',
     selectedLibrary: null,
   });
   const [followedUsers, setFollowedUsers] = useState([]);
@@ -614,11 +606,11 @@ export default function Onboarding({ onComplete, importBooks: importBooksProp })
         <div className="w-full max-w-lg">
           {step === 1 && (
             <StepWelcome
-              onCreateAccount={() => { setAuthMode('create'); next(); }}
-              onSignIn={() => { setAuthMode('signin'); next(); }}
+              onSignIn={() => next()}
+              onSkip={() => { setStep(3); }}
             />
           )}
-          {step === 2 && <StepAccount data={accountData} onChange={updateAccount} onNext={next} authMode={authMode} />}
+          {step === 2 && <StepAccount data={accountData} onChange={updateAccount} onNext={next} />}
           {step === 3 && (
             <StepFindReaders
               followedUsers={followedUsers}

@@ -1,5 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
-import { useState, useEffect, useCallback, createContext, useContext } from 'react'
+import { useState, useEffect, useCallback, useRef, createContext, useContext } from 'react'
+import useAuth from './useAuth'
+import { writeBook, deleteBook, fetchBooks, processSyncQueue } from '../lib/pdsSync'
 
 const STORAGE_KEY = 'shelfwise-books'
 const BooksContext = createContext()
@@ -14,19 +16,56 @@ function load() {
 
 export function BooksProvider({ children }) {
   const [books, setBooks] = useState(load)
+  const auth = useAuth()
+  const hasSynced = useRef(false)
 
+  // Persist to localStorage on every change
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(books))
   }, [books])
 
+  // On auth, sync from PDS and process queued writes
+  useEffect(() => {
+    if (!auth?.isAuthenticated || !auth.agent || !auth.did || hasSynced.current) return
+    hasSynced.current = true
+
+    async function sync() {
+      try {
+        // Process any pending writes first
+        await processSyncQueue(auth.agent, auth.did)
+
+        // Fetch books from PDS
+        const pdsBooks = await fetchBooks(auth.agent, auth.did)
+        if (pdsBooks.length > 0) {
+          setBooks((prev) => {
+            // Merge: PDS is source of truth, but keep local-only books
+            const pdsKeys = new Set(pdsBooks.map((b) => b.key))
+            const localOnly = prev.filter((b) => !pdsKeys.has(b.key))
+            return [...pdsBooks, ...localOnly]
+          })
+        }
+      } catch {
+        // Sync failure is non-fatal — localStorage data is still good
+      }
+    }
+    sync()
+  }, [auth])
+
   const addBook = useCallback((book) => {
     const safeKey = book.key || `/works/local_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
-    if (!safeKey) return // guard: never allow a null key
+    if (!safeKey) return
+
+    const bookWithKey = {
+      ...book,
+      key: safeKey,
+      ratings: book.ratings || {},
+      notes: book.notes || '',
+      addedAt: book.addedAt || new Date().toISOString(),
+    }
 
     setBooks((prev) => {
       const existingIndex = prev.findIndex((b) => b.key === safeKey)
       if (existingIndex !== -1) {
-        // Book already exists — update the shelf if provided
         if (book.shelf) {
           return prev.map((b, i) =>
             i === existingIndex ? { ...b, shelf: book.shelf } : b
@@ -34,27 +73,41 @@ export function BooksProvider({ children }) {
         }
         return prev
       }
-      // New book — append to existing array
-      return [
-        ...prev,
-        {
-          ...book,
-          key: safeKey,
-          ratings: book.ratings || {},
-          notes: book.notes || '',
-          addedAt: book.addedAt || new Date().toISOString(),
-        },
-      ]
+      return [...prev, bookWithKey]
     })
-  }, [])
+
+    // PDS dual-write (fire and forget)
+    if (auth?.isAuthenticated && auth.agent && auth.did) {
+      writeBook(auth.agent, auth.did, bookWithKey).catch(() => {})
+    }
+  }, [auth])
 
   const updateBook = useCallback((key, updates) => {
-    setBooks((prev) => prev.map((b) => (b.key === key ? { ...b, ...updates } : b)))
-  }, [])
+    setBooks((prev) => {
+      const updated = prev.map((b) => (b.key === key ? { ...b, ...updates } : b))
+
+      // PDS dual-write
+      if (auth?.isAuthenticated && auth.agent && auth.did) {
+        const book = updated.find((b) => b.key === key)
+        if (book) writeBook(auth.agent, auth.did, book).catch(() => {})
+      }
+
+      return updated
+    })
+  }, [auth])
 
   const removeBook = useCallback((key) => {
-    setBooks((prev) => prev.filter((b) => b.key !== key))
-  }, [])
+    setBooks((prev) => {
+      const book = prev.find((b) => b.key === key)
+
+      // PDS dual-write
+      if (book && auth?.isAuthenticated && auth.agent && auth.did) {
+        deleteBook(auth.agent, auth.did, book).catch(() => {})
+      }
+
+      return prev.filter((b) => b.key !== key)
+    })
+  }, [auth])
 
   const getBooksByShelf = useCallback(
     (shelf) => books.filter((b) => b.shelf === shelf),

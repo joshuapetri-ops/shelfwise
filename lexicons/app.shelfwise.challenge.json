@@ -1,0 +1,22 @@
+{
+  "lexicon": 1,
+  "id": "app.shelfwise.challenge",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "A reading challenge with a goal and date range.",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["title", "goal", "startDate", "endDate", "createdAt"],
+        "properties": {
+          "title": { "type": "string", "maxLength": 256 },
+          "goal": { "type": "integer", "minimum": 1 },
+          "startDate": { "type": "string", "format": "datetime" },
+          "endDate": { "type": "string", "format": "datetime" },
+          "createdAt": { "type": "string", "format": "datetime" }
+        }
+      }
+    }
+  }
+}

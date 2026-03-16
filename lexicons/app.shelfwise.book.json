@@ -1,0 +1,33 @@
+{
+  "lexicon": 1,
+  "id": "app.shelfwise.book",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "A book on a user's shelf.",
+      "key": "any",
+      "record": {
+        "type": "object",
+        "required": ["title", "shelf", "createdAt"],
+        "properties": {
+          "title": { "type": "string", "maxLength": 512 },
+          "author": { "type": "string", "maxLength": 256 },
+          "isbn": { "type": "string", "maxLength": 20 },
+          "openLibraryKey": { "type": "string", "maxLength": 128 },
+          "coverId": { "type": "integer" },
+          "shelf": {
+            "type": "string",
+            "knownValues": ["reading", "wantToRead", "read", "dnf"]
+          },
+          "tags": {
+            "type": "array",
+            "items": { "type": "string", "maxLength": 64 },
+            "maxLength": 50
+          },
+          "notes": { "type": "string", "maxLength": 10000 },
+          "createdAt": { "type": "string", "format": "datetime" }
+        }
+      }
+    }
+  }
+}

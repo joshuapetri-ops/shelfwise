@@ -1,0 +1,36 @@
+{
+  "lexicon": 1,
+  "id": "app.shelfwise.review",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "A multi-criteria rating/review of a book.",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["book", "ratings", "createdAt"],
+        "properties": {
+          "book": {
+            "type": "ref",
+            "ref": "com.atproto.repo.strongRef"
+          },
+          "ratings": {
+            "type": "array",
+            "items": { "type": "ref", "ref": "#criterionRating" },
+            "maxLength": 20
+          },
+          "text": { "type": "string", "maxLength": 10000 },
+          "createdAt": { "type": "string", "format": "datetime" }
+        }
+      }
+    },
+    "criterionRating": {
+      "type": "object",
+      "required": ["criterionId", "value"],
+      "properties": {
+        "criterionId": { "type": "string", "maxLength": 64 },
+        "value": { "type": "integer", "minimum": 0, "maximum": 100 }
+      }
+    }
+  }
+}
