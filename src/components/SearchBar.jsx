@@ -17,7 +17,7 @@ export default function SearchBar({ onSearch, onSelect, language }) {
 
   useEffect(() => {
     const id = ++fetchIdRef.current
-    if (debouncedQuery.trim().length < 2) {
+    if (debouncedQuery.trim().length < 4) {
       // Use a microtask to avoid synchronous setState in effect
       Promise.resolve().then(() => {
         if (id === fetchIdRef.current) {
@@ -27,13 +27,13 @@ export default function SearchBar({ onSearch, onSelect, language }) {
       })
       return
     }
-    autocomplete(debouncedQuery, 5, language).then((results) => {
+    autocomplete(debouncedQuery).then((results) => {
       if (id === fetchIdRef.current) {
         setSuggestions(results ?? [])
         setOpen(true)
       }
     })
-  }, [debouncedQuery, language])
+  }, [debouncedQuery])
 
   function handleSubmit(e) {
     e?.preventDefault()

@@ -155,42 +155,37 @@ async function searchWithClaude(query, limit) {
  * @param {string} [language] - 2-letter or 3-letter language code.
  * @returns {Promise<Array<{title: string, author: string, coverId: number|null}>>}
  */
-export async function autocomplete(query, limit = 5, language) {
+export async function autocomplete(query, limit = 5) {
   if (!query || !query.trim()) {
     return [];
   }
 
-  const olLang = toOlLang(language);
-  const fullQuery = olLang
-    ? `${query.trim()} language:${olLang}`
-    : query.trim();
+  try {
+    const params = new URLSearchParams({
+      q: query.trim(),
+      limit: String(limit),
+      fields: "key,title,author_name,cover_i,first_publish_year,isbn",
+    });
 
-  const params = new URLSearchParams({
-    q: fullQuery,
-    limit: String(limit),
-    fields: "key,title,author_name,cover_i,first_publish_year,isbn",
-  });
+    const response = await fetch(`${BASE_URL}/search.json?${params}`);
 
-  const response = await fetch(`${BASE_URL}/search.json?${params}`);
+    if (!response.ok) return [];
 
-  if (!response.ok) {
-    throw new Error(
-      `Open Library autocomplete failed: ${response.status} ${response.statusText}`
-    );
+    const data = await response.json();
+
+    return (data.docs || []).map((doc) => ({
+      key: doc.key || null,
+      title: doc.title || "Unknown Title",
+      author: Array.isArray(doc.author_name)
+        ? doc.author_name[0]
+        : doc.author_name || "Unknown Author",
+      coverId: doc.cover_i ?? null,
+      year: doc.first_publish_year ?? null,
+      isbn: Array.isArray(doc.isbn) ? doc.isbn[0] : doc.isbn || null,
+    }));
+  } catch {
+    return [];
   }
-
-  const data = await response.json();
-
-  return (data.docs || []).map((doc) => ({
-    key: doc.key || null,
-    title: doc.title || "Unknown Title",
-    author: Array.isArray(doc.author_name)
-      ? doc.author_name[0]
-      : doc.author_name || "Unknown Author",
-    coverId: doc.cover_i ?? null,
-    year: doc.first_publish_year ?? null,
-    isbn: Array.isArray(doc.isbn) ? doc.isbn[0] : doc.isbn || null,
-  }));
 }
 
 /**

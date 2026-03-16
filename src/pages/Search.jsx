@@ -174,7 +174,11 @@ export default function Search({ onBookClick }) {
                           {SHELF_OPTIONS.map((opt) => (
                             <button
                               key={opt.value}
-                              onClick={(e) => { e.stopPropagation(); handleAddWithShelf(book, opt.value) }}
+                              onMouseDown={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                handleAddWithShelf(book, opt.value)
+                              }}
                               className="w-full text-left px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                             >
                               {opt.label}
