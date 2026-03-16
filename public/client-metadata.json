@@ -5,7 +5,6 @@
   "logo_uri": "https://shelfwise-wine.vercel.app/favicon.svg",
   "redirect_uris": [
     "https://shelfwise-wine.vercel.app/oauth/callback",
-    "http://localhost:5173/oauth/callback",
     "http://127.0.0.1:5173/oauth/callback"
   ],
   "response_types": ["code"],
