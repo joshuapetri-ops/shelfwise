@@ -10,6 +10,16 @@ import { SettingsProvider } from './hooks/useSettings'
 import './index.css'
 import App from './App.jsx'
 
+// Redirect to canonical origin so OAuth client_id always matches
+const CANONICAL_HOST = 'www.shelfwise.xyz'
+if (
+  window.location.hostname !== 'localhost' &&
+  window.location.hostname !== '127.0.0.1' &&
+  window.location.host !== CANONICAL_HOST
+) {
+  window.location.replace(`https://${CANONICAL_HOST}${window.location.pathname}${window.location.search}${window.location.hash}`)
+}
+
 const queryClient = new QueryClient()
 
 createRoot(document.getElementById('root')).render(

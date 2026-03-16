@@ -13,6 +13,10 @@ async function loadOAuthModule() {
   return BrowserOAuthClient
 }
 
+// Canonical origin — must match client-metadata.json exactly.
+// All OAuth URLs use this, regardless of what window.location.origin returns.
+const CANONICAL_ORIGIN = import.meta.env.VITE_PUBLIC_URL || 'https://www.shelfwise.xyz'
+
 /**
  * Get or create the singleton BrowserOAuthClient.
  * Must be awaited since it lazy-loads the module.
@@ -21,15 +25,14 @@ export async function getOAuthClient() {
   if (clientInstance) return clientInstance
 
   const OAuthClient = await loadOAuthModule()
-  const publicUrl = import.meta.env.VITE_PUBLIC_URL || window.location.origin
 
   clientInstance = new OAuthClient({
     clientMetadata: {
-      client_id: `${publicUrl}/client-metadata.json`,
+      client_id: `${CANONICAL_ORIGIN}/client-metadata.json`,
       client_name: 'Shelfwise',
-      client_uri: publicUrl,
-      logo_uri: `${publicUrl}/favicon.svg`,
-      redirect_uris: [`${publicUrl}/oauth/callback`],
+      client_uri: CANONICAL_ORIGIN,
+      logo_uri: `${CANONICAL_ORIGIN}/favicon.svg`,
+      redirect_uris: [`${CANONICAL_ORIGIN}/oauth/callback`],
       response_types: ['code'],
       grant_types: ['authorization_code', 'refresh_token'],
       scope: 'atproto transition:generic',
