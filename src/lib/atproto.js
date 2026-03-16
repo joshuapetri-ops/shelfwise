@@ -1,17 +1,29 @@
-import { BrowserOAuthClient } from '@atproto/oauth-client-browser'
-
 let clientInstance = null
+let BrowserOAuthClient = null
+
+/**
+ * Lazy-load the AT Protocol OAuth client module.
+ * This keeps the 1.7MB @atproto bundle out of the initial page load.
+ */
+async function loadOAuthModule() {
+  if (!BrowserOAuthClient) {
+    const mod = await import('@atproto/oauth-client-browser')
+    BrowserOAuthClient = mod.BrowserOAuthClient
+  }
+  return BrowserOAuthClient
+}
 
 /**
  * Get or create the singleton BrowserOAuthClient.
- * The client handles PKCE, DPOP, token storage (IndexedDB), and refresh.
+ * Must be awaited since it lazy-loads the module.
  */
-export function getOAuthClient() {
+export async function getOAuthClient() {
   if (clientInstance) return clientInstance
 
+  const OAuthClient = await loadOAuthModule()
   const publicUrl = import.meta.env.VITE_PUBLIC_URL || window.location.origin
 
-  clientInstance = new BrowserOAuthClient({
+  clientInstance = new OAuthClient({
     clientMetadata: {
       client_id: `${publicUrl}/client-metadata.json`,
       client_name: 'Shelfwise',
@@ -32,7 +44,16 @@ export function getOAuthClient() {
 }
 
 /**
+ * Lazy-load the AT Protocol Agent class.
+ */
+export async function createAgent(session) {
+  const { Agent } = await import('@atproto/api')
+  return new Agent(session)
+}
+
+/**
  * Resolve a handle to a DID using the public Bluesky API.
+ * No @atproto imports needed — just a fetch call.
  */
 export async function resolveHandle(handle) {
   const clean = handle.replace(/^@/, '').trim()
@@ -47,7 +68,6 @@ export async function resolveHandle(handle) {
 /**
  * Derive a deterministic rkey from an Open Library work key.
  * /works/OL12345W → ol-OL12345W
- * Falls back to a timestamp-based key for local books.
  */
 export function bookRkey(openLibraryKey) {
   if (openLibraryKey && openLibraryKey.startsWith('/works/')) {

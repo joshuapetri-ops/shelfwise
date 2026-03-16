@@ -1,16 +1,15 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
-import { Agent } from '@atproto/api'
-import { getOAuthClient } from '../lib/atproto'
+import { getOAuthClient, createAgent } from '../lib/atproto'
 
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
-  const [session, setSession] = useState(null)      // OAuthSession
-  const [agent, setAgent] = useState(null)           // AT Proto Agent
-  const [did, setDid] = useState(null)               // user's DID
-  const [handle, setHandle] = useState(null)         // user's handle
-  const [loading, setLoading] = useState(true)       // true while checking for existing session
+  const [session, setSession] = useState(null)
+  const [agent, setAgent] = useState(null)
+  const [did, setDid] = useState(null)
+  const [handle, setHandle] = useState(null)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
   // On mount: check for existing session or complete OAuth callback
@@ -18,7 +17,7 @@ export function AuthProvider({ children }) {
     let cancelled = false
     async function init() {
       try {
-        const client = getOAuthClient()
+        const client = await getOAuthClient()
         const result = await client.init()
 
         if (!cancelled && result?.session) {
@@ -26,11 +25,10 @@ export function AuthProvider({ children }) {
           setSession(sess)
           setDid(sess.did)
           setHandle(sess.handle ?? sess.did)
-          setAgent(new Agent(sess))
+          setAgent(await createAgent(sess))
         }
       } catch (err) {
         if (!cancelled) {
-          // If init fails, it's not fatal — user just isn't logged in
           console.error('OAuth init error:', err)
           setError(err.message)
         }
@@ -46,11 +44,10 @@ export function AuthProvider({ children }) {
   const signIn = useCallback(async (userHandle) => {
     setError(null)
     try {
-      const client = getOAuthClient()
+      const client = await getOAuthClient()
       await client.signIn(userHandle.replace(/^@/, '').trim(), {
         scope: 'atproto transition:generic',
       })
-      // Browser will redirect; this line won't execute
     } catch (err) {
       setError(err.message)
       throw err
@@ -70,9 +67,10 @@ export function AuthProvider({ children }) {
     setAgent(null)
     setDid(null)
     setHandle(null)
-    // Clear the OAuth client's IndexedDB state
-    const client = getOAuthClient()
-    if (client.dispose) await client.dispose()
+    try {
+      const client = await getOAuthClient()
+      if (client.dispose) await client.dispose()
+    } catch { /* ignore */ }
     window.location.reload()
   }, [session])
 
