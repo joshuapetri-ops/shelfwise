@@ -72,29 +72,21 @@ export async function searchBooks(query, { limit = 20, language, onProgress } = 
     }
 
     if (results.length > 0) return results;
-  } catch (err) {
-    console.warn('Open Library search failed, falling back to Claude:', err.message);
-  }
+  } catch { /* continue to fallbacks */ }
 
   // Fallback 1: ask Claude for book info from training knowledge
-  console.log('OL search: 0 results, trying Claude knowledge...');
   onProgress?.('Not found in Open Library. Searching deeper...');
   try {
     const claudeResults = await searchWithClaude(query, limit);
     if (claudeResults.length > 0) return claudeResults;
-  } catch (err) {
-    console.warn('Claude knowledge fallback failed:', err.message);
-  }
+  } catch { /* continue to next fallback */ }
 
   // Fallback 2: Claude with web search for very recent books
-  console.log('Claude knowledge: 0 results, trying web search...');
   onProgress?.('Searching the web for recent releases...');
   try {
     const webResults = await searchWithClaudeWeb(query);
     if (webResults.length > 0) return webResults;
-  } catch (err) {
-    console.warn('Claude web search fallback failed:', err.message);
-  }
+  } catch { /* all fallbacks exhausted */ }
 
   return [];
 }
@@ -122,21 +114,38 @@ async function searchOL(query, limit, langCode) {
 
 async function enrichWithCovers(results) {
   return Promise.all(results.map(async (book) => {
-    if (book.isbn) {
-      try {
-        const olRes = await fetch(
-          `${BASE_URL}/search.json?isbn=${book.isbn}&fields=key,cover_i&limit=1`
-        );
-        const olData = await olRes.json();
-        if (olData.docs?.[0]) {
-          return {
-            ...book,
-            coverId: olData.docs[0].cover_i || null,
-            key: olData.docs[0].key || book.key,
-          };
-        }
-      } catch { /* ignore enrichment failures */ }
-    }
+    if (!book.isbn) return book;
+
+    // Try Open Library first
+    try {
+      const olRes = await fetch(
+        `${BASE_URL}/search.json?isbn=${book.isbn}&fields=key,cover_i&limit=1`
+      );
+      const olData = await olRes.json();
+      if (olData.docs?.[0]?.cover_i) {
+        return {
+          ...book,
+          coverId: olData.docs[0].cover_i,
+          key: olData.docs[0].key || book.key,
+        };
+      }
+    } catch { /* ignore */ }
+
+    // Fallback: Google Books for cover
+    try {
+      const gbRes = await fetch(
+        `https://www.googleapis.com/books/v1/volumes?q=isbn:${book.isbn}&fields=items(volumeInfo/imageLinks)`
+      );
+      const gbData = await gbRes.json();
+      const thumbnail = gbData.items?.[0]?.volumeInfo?.imageLinks?.thumbnail;
+      if (thumbnail) {
+        return {
+          ...book,
+          coverUrl: thumbnail.replace('http://', 'https://'),
+        };
+      }
+    } catch { /* ignore */ }
+
     return book;
   }));
 }
@@ -226,7 +235,6 @@ async function searchWithClaudeWeb(query) {
   });
 
   const step1Data = await step1.json();
-  console.log('Web search step 1 complete, formatting...');
 
   // Wait 2 seconds before the formatting call to avoid rate limit
   await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -248,7 +256,6 @@ async function searchWithClaudeWeb(query) {
 
   let step2Resp = await fetch('https://api.anthropic.com/v1/messages', step2Options);
   if (step2Resp.status === 429) {
-    console.log('Rate limited, retrying in 3 seconds...');
     await new Promise((resolve) => setTimeout(resolve, 3000));
     step2Resp = await fetch('https://api.anthropic.com/v1/messages', step2Options);
   }
@@ -261,8 +268,6 @@ async function searchWithClaudeWeb(query) {
   const clean = text.replace(/```json|```/g, '').trim();
   const match = clean.match(/\[[\s\S]*\]/);
   const results = JSON.parse(match ? match[0] : clean);
-
-  console.log('Web search results:', results);
 
   const arr = Array.isArray(results) ? results : [results];
 

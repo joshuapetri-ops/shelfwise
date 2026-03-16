@@ -94,6 +94,7 @@ export default function BookDetail({ book, isOpen, onClose, onUpdate, onRemove, 
           <BookCover
             coverId={book.coverId}
             isbn={book.isbn}
+            coverUrl={book.coverUrl}
             title={book.title}
             size="L"
           />

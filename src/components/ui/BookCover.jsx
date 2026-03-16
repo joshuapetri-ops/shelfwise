@@ -2,8 +2,8 @@ import { getCoverUrl, getCoverByIsbn } from '../../api/openLibrary'
 
 const sizeClasses = { S: 'w-10 h-14', M: 'w-24 h-36', L: 'w-40 h-60' }
 
-export default function BookCover({ coverId, isbn, title = '', size = 'M' }) {
-  const url = getCoverUrl(coverId, size) || getCoverByIsbn(isbn, size)
+export default function BookCover({ coverId, isbn, coverUrl, title = '', size = 'M' }) {
+  const url = getCoverUrl(coverId, size) || getCoverByIsbn(isbn, size) || coverUrl || ''
 
   return url ? (
     <img

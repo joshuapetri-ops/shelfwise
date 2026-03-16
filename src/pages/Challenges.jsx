@@ -263,7 +263,7 @@ export default function Challenges() {
                         <div className="flex flex-wrap gap-3">
                           {challengeBooks.map((b) => (
                             <div key={b.key} className="flex items-center gap-2">
-                              <BookCover coverId={b.coverId} isbn={b.isbn} title={b.title} size="S" />
+                              <BookCover coverId={b.coverId} isbn={b.isbn} coverUrl={b.coverUrl} title={b.title} size="S" />
                               <div className="min-w-0">
                                 <p className="text-sm font-medium text-gray-900 dark:text-gray-100 line-clamp-1">{b.title}</p>
                                 <p className="text-xs text-gray-500 dark:text-gray-400">{b.author}</p>

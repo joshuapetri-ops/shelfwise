@@ -140,6 +140,7 @@ export default function Search({ onBookClick }) {
                   <BookCover
                     coverId={book.coverId}
                     isbn={book.isbn}
+                    coverUrl={book.coverUrl}
                     title={book.title}
                     size="M"
                   />

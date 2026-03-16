@@ -82,7 +82,7 @@ export default function BookCard({ book, criteria, libraryCode, onClick }) {
       }}
       className="flex w-full items-start gap-4 rounded-xl bg-white dark:bg-gray-900 p-3 text-left shadow-sm transition hover:shadow-md active:scale-[0.98] border border-gray-100 dark:border-gray-800 cursor-pointer"
     >
-      <BookCover coverId={book.coverId} isbn={book.isbn} title={book.title} size="M" />
+      <BookCover coverId={book.coverId} isbn={book.isbn} coverUrl={book.coverUrl} title={book.title} size="M" />
 
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
         {/* Title */}
