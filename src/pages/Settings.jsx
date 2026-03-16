@@ -394,6 +394,10 @@ export default function Settings({ onLogout }) {
                     type="text"
                     value={c.emoji || ''}
                     onChange={(e) => updateCriterion(c.id, { emoji: e.target.value })}
+                    autoComplete="off"
+                    data-1p-ignore="true"
+                    data-lpignore="true"
+                    data-form-type="other"
                     className="w-10 text-center text-lg border border-gray-200 dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-700"
                     maxLength={2}
                     title="Emoji"
@@ -403,6 +407,10 @@ export default function Settings({ onLogout }) {
                     type="text"
                     value={c.name}
                     onChange={(e) => updateCriterion(c.id, { name: e.target.value })}
+                    autoComplete="off"
+                    data-1p-ignore="true"
+                    data-lpignore="true"
+                    data-form-type="other"
                     className="flex-1 min-w-0 px-2 py-1 text-sm border border-gray-200 dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   />
                   {/* Type toggle */}
@@ -459,6 +467,10 @@ export default function Settings({ onLogout }) {
                   onChange={(e) => setNewEmoji(e.target.value)}
                   placeholder="⭐"
                   maxLength={2}
+                  autoComplete="off"
+                  data-1p-ignore="true"
+                  data-lpignore="true"
+                  data-form-type="other"
                   className="w-12 text-center px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                 />
               </div>
@@ -469,6 +481,10 @@ export default function Settings({ onLogout }) {
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   placeholder="Criterion name"
+                  autoComplete="off"
+                  data-1p-ignore="true"
+                  data-lpignore="true"
+                  data-form-type="other"
                   className="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                   onKeyDown={(e) => e.key === 'Enter' && handleAddCriterion()}
                 />
@@ -576,6 +592,10 @@ export default function Settings({ onLogout }) {
                     value={importCode}
                     onChange={(e) => { setImportCode(e.target.value); setPreviewCriteria(null) }}
                     placeholder="Paste criteria code here"
+                    autoComplete="off"
+                    data-1p-ignore="true"
+                    data-lpignore="true"
+                    data-form-type="other"
                     className="flex-1 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                     onKeyDown={(e) => e.key === 'Enter' && handlePreviewCriteria()}
                   />

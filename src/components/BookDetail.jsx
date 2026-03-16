@@ -270,6 +270,10 @@ export default function BookDetail({ book, isOpen, onClose, onUpdate, onRemove, 
               onChange={(e) => setNewTag(e.target.value)}
               onKeyDown={handleTagKeyDown}
               placeholder="New tag"
+              autoComplete="off"
+              data-1p-ignore="true"
+              data-lpignore="true"
+              data-form-type="other"
               className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 dark:focus:border-indigo-500"
             />
             <button

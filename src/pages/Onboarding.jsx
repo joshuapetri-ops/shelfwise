@@ -138,7 +138,10 @@ function StepAccount({ data, onChange, onNext, authMode }) {
             value={data.handle}
             onChange={(e) => onChange({ handle: e.target.value })}
             placeholder={isSignIn ? 'you.bsky.social or your.domain.com' : 'yourname.bsky.social'}
-            autoComplete="username"
+            autoComplete="off"
+            data-1p-ignore="true"
+            data-lpignore="true"
+            data-form-type="other"
             className={inputClasses}
           />
           <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
@@ -156,8 +159,10 @@ function StepAccount({ data, onChange, onNext, authMode }) {
               value={data.displayName}
               onChange={(e) => onChange({ displayName: e.target.value })}
               placeholder="Your Name"
-              autoComplete="name"
-              data-1p-ignore
+              autoComplete="off"
+              data-1p-ignore="true"
+              data-lpignore="true"
+              data-form-type="other"
               className={inputClasses}
             />
           </div>
@@ -174,7 +179,10 @@ function StepAccount({ data, onChange, onNext, authMode }) {
             value={data.password}
             onChange={(e) => onChange({ password: e.target.value })}
             placeholder={isSignIn ? 'xxxx-xxxx-xxxx-xxxx' : 'Create a password'}
-            autoComplete={isSignIn ? 'current-password' : 'new-password'}
+            autoComplete="off"
+            data-1p-ignore="true"
+            data-lpignore="true"
+            data-form-type="other"
             className={inputClasses}
           />
           {isSignIn && (
@@ -200,8 +208,10 @@ function StepAccount({ data, onChange, onNext, authMode }) {
           value={librarySearch}
           onChange={(e) => setLibrarySearch(e.target.value)}
           placeholder="Search by library name or city..."
-          data-1p-ignore
           autoComplete="off"
+          data-1p-ignore="true"
+          data-lpignore="true"
+          data-form-type="other"
           className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 pl-9 pr-3 py-2 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
         />
       </div>
