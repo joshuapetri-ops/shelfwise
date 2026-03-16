@@ -126,11 +126,7 @@ export default function BookDetail({ book, isOpen, onClose, onUpdate, onRemove, 
                 <button
                   key={key}
                   type="button"
-                  onMouseDown={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    handleShelfChange(key)
-                  }}
+                  onClick={() => handleShelfChange(key)}
                   className={`rounded-full px-4 py-2.5 text-sm font-medium transition-colors min-h-[44px] ${
                     isActive
                       ? 'bg-indigo-600 text-white dark:bg-indigo-500'

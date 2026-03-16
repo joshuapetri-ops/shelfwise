@@ -161,19 +161,13 @@ export default function ForYou() {
                   ) : (
                     <>
                       <button
-                        onMouseDown={(e) => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          handleAddBook(rec, index)
-                        }}
+                        onClick={() => handleAddBook(rec, index)}
                         className="px-3 py-2.5 text-xs font-semibold bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 rounded-md hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors min-h-[44px] flex items-center"
                       >
                         + Want to Read
                       </button>
                       <button
-                        onMouseDown={(e) => {
-                          e.preventDefault()
-                          e.stopPropagation()
+                        onClick={() => {
                           addBook({
                             key: `rec-${rec.title}-${rec.author}-${crypto.randomUUID()}`,
                             title: rec.title,

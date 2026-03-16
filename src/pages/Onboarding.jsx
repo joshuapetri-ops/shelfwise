@@ -387,6 +387,9 @@ function StepFindReaders({ followedUsers, setFollowedUsers, onNext }) {
       </form>
 
       <div className="flex gap-2 mb-4">
+        <Button size="sm" variant="secondary" onClick={() => setFollowedUsers(displayUsers.map((u) => u.handle))}>
+          Follow All
+        </Button>
         <Button size="sm" variant="ghost" onClick={() => { setFollowedUsers([]); onNext(); }}>
           Skip
         </Button>

@@ -171,31 +171,19 @@ export default function Search({ onBookClick }) {
                   ) : (
                     <div className="flex flex-wrap gap-1.5 justify-center">
                       <button
-                        onMouseDown={(e) => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          addBook({ ...book, shelf: 'read' })
-                        }}
+                        onClick={() => addBook({ ...book, shelf: 'read' })}
                         className="px-3 py-2 text-xs font-semibold bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-md hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors min-h-[44px] flex items-center"
                       >
                         + Read
                       </button>
                       <button
-                        onMouseDown={(e) => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          addBook({ ...book, shelf: 'reading' })
-                        }}
+                        onClick={() => addBook({ ...book, shelf: 'reading' })}
                         className="px-3 py-2 text-xs font-semibold bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-md hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors min-h-[44px] flex items-center"
                       >
                         + Reading
                       </button>
                       <button
-                        onMouseDown={(e) => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          addBook({ ...book, shelf: 'wantToRead' })
-                        }}
+                        onClick={() => addBook({ ...book, shelf: 'wantToRead' })}
                         className="px-3 py-2 text-xs font-semibold bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 rounded-md hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors min-h-[44px] flex items-center"
                       >
                         + Want to Read
