@@ -133,7 +133,7 @@ export default function ForYou() {
         <ul className="space-y-4">
           {recommendations.map((rec, index) => (
             <li
-              key={index}
+              key={`${rec.title}-${rec.author}-${index}`}
               className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 shadow-sm"
             >
               <div className="flex items-start justify-between gap-4">
@@ -166,7 +166,7 @@ export default function ForYou() {
                           e.stopPropagation()
                           handleAddBook(rec, index)
                         }}
-                        className="px-3 py-1.5 text-xs font-semibold bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 rounded-md hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors"
+                        className="px-3 py-2.5 text-xs font-semibold bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 rounded-md hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors min-h-[44px] flex items-center"
                       >
                         + Want to Read
                       </button>
@@ -182,7 +182,7 @@ export default function ForYou() {
                           })
                           setAddedSet((prev) => new Set([...prev, index]))
                         }}
-                        className="px-3 py-1.5 text-xs font-semibold bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-md hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+                        className="px-3 py-2.5 text-xs font-semibold bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-md hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors min-h-[44px] flex items-center"
                       >
                         + Reading
                       </button>

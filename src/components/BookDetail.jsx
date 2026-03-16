@@ -119,7 +119,7 @@ export default function BookDetail({ book, isOpen, onClose, onUpdate, onRemove, 
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
             Shelf
           </h3>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {SHELVES.map(({ key, label }) => {
               const isActive = book.shelf === key;
               return (
@@ -131,7 +131,7 @@ export default function BookDetail({ book, isOpen, onClose, onUpdate, onRemove, 
                     e.stopPropagation()
                     handleShelfChange(key)
                   }}
-                  className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                  className={`rounded-full px-4 py-2.5 text-sm font-medium transition-colors min-h-[44px] ${
                     isActive
                       ? 'bg-indigo-600 text-white dark:bg-indigo-500'
                       : 'border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'
