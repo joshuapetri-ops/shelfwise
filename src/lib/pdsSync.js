@@ -177,6 +177,58 @@ export async function fetchCriteria(agent, did) {
 }
 
 /**
+ * Write user settings to PDS (stored as a criteria template with rkey 'preferences').
+ */
+export async function writeSettings(agent, did, settings) {
+  const record = {
+    $type: CRITERIA_COLLECTION,
+    name: '_preferences',
+    criteria: [],
+    createdAt: new Date().toISOString(),
+    // Settings stored as extra fields — PDS accepts them
+    libraryCode: settings.libraryCode || '',
+    libraryName: settings.libraryName || '',
+    language: settings.language || 'en',
+    theme: settings.theme || 'light',
+    defaultAction: settings.defaultAction || 'details',
+    defaultAcquire: settings.defaultAcquire || 'none',
+  }
+
+  try {
+    await agent.com.atproto.repo.putRecord({
+      repo: did,
+      collection: CRITERIA_COLLECTION,
+      rkey: 'preferences',
+      record,
+    })
+  } catch { /* non-fatal */ }
+}
+
+/**
+ * Fetch user settings from PDS.
+ */
+export async function fetchSettings(agent, did) {
+  try {
+    const res = await agent.com.atproto.repo.getRecord({
+      repo: did,
+      collection: CRITERIA_COLLECTION,
+      rkey: 'preferences',
+    })
+    const v = res.data.value
+    return {
+      libraryCode: v.libraryCode || '',
+      libraryName: v.libraryName || '',
+      language: v.language || 'en',
+      theme: v.theme || 'light',
+      defaultAction: v.defaultAction || 'details',
+      defaultAcquire: v.defaultAcquire || 'none',
+    }
+  } catch {
+    return null
+  }
+}
+
+/**
  * Write a challenge to the user's PDS.
  */
 export async function writeChallenge(agent, did, challenge) {

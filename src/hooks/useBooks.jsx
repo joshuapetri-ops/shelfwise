@@ -124,9 +124,17 @@ export function BooksProvider({ children }) {
     setBooks((prev) => {
       const existingKeys = new Set(prev.map((b) => b.key))
       const unique = newBooks.filter((b) => !existingKeys.has(b.key))
+
+      // PDS dual-write for imported books
+      if (auth?.isAuthenticated && auth.agent && auth.did) {
+        for (const book of unique) {
+          writeBook(auth.agent, auth.did, book).catch(() => {})
+        }
+      }
+
       return [...prev, ...unique]
     })
-  }, [])
+  }, [auth])
 
   return (
     <BooksContext.Provider value={{ books, addBook, updateBook, removeBook, getBooksByShelf, importBooks }}>

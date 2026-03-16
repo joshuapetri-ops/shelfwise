@@ -150,10 +150,13 @@ export default function Social() {
                         View books
                       </Link>
                       {alreadyFollowing ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/30">
+                        <Link
+                          to={`/profile/${user.handle}`}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors"
+                        >
                           <UserCheck size={14} />
                           Following
-                        </span>
+                        </Link>
                       ) : (
                         <Button
                           size="sm"

@@ -7,7 +7,7 @@ import Button from '../components/ui/Button'
 import useBooks from '../hooks/useBooks'
 import useAuth from '../hooks/useAuth'
 import useFollow from '../hooks/useFollow'
-import { ArrowLeft, BookOpen, Loader2, UserPlus, UserMinus } from 'lucide-react'
+import { ArrowLeft, BookOpen, Loader2, UserPlus, UserMinus, UserCheck } from 'lucide-react'
 
 const SHELF_LABELS = {
   wantToRead: 'Want to Read',
@@ -191,19 +191,22 @@ export default function Profile() {
             {isAuthenticated && !isMe && (
               <div className="shrink-0">
                 {isFollowing ? (
-                  <Button
-                    variant="secondary"
-                    size="sm"
+                  <button
                     onClick={handleUnfollow}
                     disabled={isFollowLoading(followUri)}
+                    className="group inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-red-300 hover:bg-red-50 hover:text-red-600 dark:hover:border-red-700 dark:hover:bg-red-950 dark:hover:text-red-400 disabled:opacity-50"
                   >
                     {isFollowLoading(followUri) ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
-                      <UserMinus className="w-4 h-4" />
+                      <>
+                        <UserMinus className="w-4 h-4 hidden group-hover:block" />
+                        <UserCheck className="w-4 h-4 block group-hover:hidden" />
+                      </>
                     )}
-                    Following
-                  </Button>
+                    <span className="group-hover:hidden">Following</span>
+                    <span className="hidden group-hover:inline">Unfollow</span>
+                  </button>
                 ) : (
                   <Button
                     size="sm"
