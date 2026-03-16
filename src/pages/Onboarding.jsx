@@ -274,13 +274,6 @@ function StepLibrary({ data, onChange, onNext }) {
         ))}
       </select>
 
-      <button
-        onClick={onNext}
-        className="text-sm text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 underline mb-4 block"
-      >
-        Skip for now
-      </button>
-
       <Button size="lg" className="w-full" onClick={onNext}>
         Continue
         <ArrowRight className="w-4 h-4" />
