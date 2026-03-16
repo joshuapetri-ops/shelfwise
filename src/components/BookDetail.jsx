@@ -40,6 +40,8 @@ export default function BookDetail({ book, isOpen, onClose, onUpdate, onRemove, 
       onUpdate(book.key, { shelf: shelfKey });
     } else {
       addBook({ ...book, shelf: shelfKey });
+      // Also update the modal via onUpdate so the UI reflects the change
+      onUpdate(book.key, { shelf: shelfKey });
     }
   }
 

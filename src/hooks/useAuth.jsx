@@ -24,8 +24,31 @@ export function AuthProvider({ children }) {
           const sess = result.session
           setSession(sess)
           setDid(sess.did)
-          setHandle(sess.handle ?? sess.did)
           setAgent(await createAgent(sess))
+
+          // Resolve handle from DID if the session doesn't include it
+          let resolvedHandle = sess.handle
+          if (!resolvedHandle || resolvedHandle === sess.did) {
+            try {
+              const res = await fetch(
+                `https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle=${encodeURIComponent(sess.did)}`
+              )
+              if (!res.ok) {
+                // Try reverse: resolve DID to handle via plc directory
+                const plcRes = await fetch(`https://plc.directory/${sess.did}`)
+                if (plcRes.ok) {
+                  const plcData = await plcRes.json()
+                  resolvedHandle = plcData.alsoKnownAs?.[0]?.replace('at://', '') || sess.did
+                }
+              } else {
+                const data = await res.json()
+                resolvedHandle = data.handle || sess.did
+              }
+            } catch {
+              resolvedHandle = sess.did
+            }
+          }
+          setHandle(resolvedHandle)
         }
       } catch (err) {
         if (!cancelled) {

@@ -36,14 +36,20 @@ export function BooksProvider({ children }) {
 
         // Fetch books from PDS
         const pdsBooks = await fetchBooks(auth.agent, auth.did)
-        if (pdsBooks.length > 0) {
-          setBooks((prev) => {
-            // Merge: PDS is source of truth, but keep local-only books
-            const pdsKeys = new Set(pdsBooks.map((b) => b.key))
-            const localOnly = prev.filter((b) => !pdsKeys.has(b.key))
-            return [...pdsBooks, ...localOnly]
-          })
-        }
+
+        setBooks((prev) => {
+          // Merge: PDS is source of truth, but keep local-only books
+          const pdsKeys = new Set(pdsBooks.map((b) => b.key))
+          const localOnly = prev.filter((b) => !pdsKeys.has(b.key))
+          const merged = [...pdsBooks, ...localOnly]
+
+          // Sync local-only books UP to PDS so they're preserved
+          for (const book of localOnly) {
+            writeBook(auth.agent, auth.did, book).catch(() => {})
+          }
+
+          return merged
+        })
       } catch {
         // Sync failure is non-fatal — localStorage data is still good
       }
