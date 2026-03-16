@@ -86,6 +86,7 @@ export default function Settings({ onLogout }) {
   const { isAuthenticated, did, handle: authHandle, signOut } = useAuth()
 
   const [activeTab, setActiveTab] = useState('General')
+  const [shareCopied, setShareCopied] = useState(false)
 
   // Criteria tab state
   const [newName, setNewName] = useState('')
@@ -369,6 +370,44 @@ export default function Settings({ onLogout }) {
                 </div>
                 <Toggle checked={showInDiscovery} onChange={setShowInDiscovery} />
               </div>
+            </div>
+          </section>
+
+          {/* Share Shelfwise */}
+          <section>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Share Shelfwise</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+              Shelfwise is better with friends. Invite people to see what they&apos;re reading.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText('https://www.shelfwise.xyz')
+                    setShareCopied(true)
+                    setTimeout(() => setShareCopied(false), 2000)
+                  } catch { /* ignore */ }
+                }}
+              >
+                <Copy size={16} />
+                {shareCopied ? 'Copied!' : 'Copy invite link'}
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  window.open(
+                    'https://bsky.app/intent/compose?text=' + encodeURIComponent(
+                      "I'm tracking my reading on Shelfwise — an open social app for book lovers built on AT Protocol. Join me! https://www.shelfwise.xyz"
+                    ),
+                    '_blank'
+                  )
+                }}
+              >
+                <Share2 size={16} />
+                Share on Bluesky
+              </Button>
             </div>
           </section>
         </div>

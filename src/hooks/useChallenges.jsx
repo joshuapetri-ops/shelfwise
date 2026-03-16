@@ -45,10 +45,7 @@ export function ChallengesProvider({ children }) {
             startDate: r.value.startDate,
             endDate: r.value.endDate,
             createdAt: r.value.createdAt,
-            participants: [
-              { name: 'Alice', handle: 'alice.bsky.social', progress: Math.floor(Math.random() * r.value.goal) },
-              { name: 'Bob', handle: 'bob.bsky.social', progress: Math.floor(Math.random() * r.value.goal) },
-            ],
+            participants: [],
           }))
           setChallenges(pdsChallenges)
         }
@@ -58,17 +55,13 @@ export function ChallengesProvider({ children }) {
   }, [auth])
 
   const addChallenge = useCallback((challenge) => {
-    const goal = challenge.goal || 10
     const id = crypto.randomUUID()
     const full = {
       ...challenge,
       id,
       rkey: id,
       createdAt: new Date().toISOString(),
-      participants: [
-        { name: 'Alice', handle: 'alice.bsky.social', progress: Math.floor(Math.random() * goal) },
-        { name: 'Bob', handle: 'bob.bsky.social', progress: Math.floor(Math.random() * goal) },
-      ],
+      participants: [],
     }
     setChallenges((prev) => [...prev, full])
 

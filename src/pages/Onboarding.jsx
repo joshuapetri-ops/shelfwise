@@ -1,12 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, ArrowRight, ArrowLeft, Upload, Search, Check, Users, Globe, Loader2 } from 'lucide-react';
+import { BookOpen, ArrowRight, ArrowLeft, Upload, Search, Check, Globe, Loader2, Share2, Link } from 'lucide-react';
 import useBooks from '../hooks/useBooks';
 import useSettings from '../hooks/useSettings';
 import useAuth from '../hooks/useAuth';
 import { autoImport, enrichCovers } from '../lib/importers';
-import { mockUsers, mockLibraries } from '../lib/mockData';
-import Avatar from '../components/ui/Avatar';
+import { mockLibraries } from '../lib/mockData';
 import Button from '../components/ui/Button';
 
 const LANGUAGES = [
@@ -290,159 +289,61 @@ function StepLibrary({ data, onChange, onNext }) {
   );
 }
 
-/* ─── Step 3 — Find Readers ─────────────────────────────────────── */
+/* ─── Step 3 — Share Shelfwise ──────────────────────────────────── */
 
-function StepFindReaders({ followedUsers, setFollowedUsers, onNext }) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
-  const [searching, setSearching] = useState(false);
-  const [suggested, setSuggested] = useState([]);
-  const { isAuthenticated, did } = useAuth();
+function StepShareShelfwise({ onNext }) {
+  const [copied, setCopied] = useState(false);
 
-  // Load suggested users: if authenticated, use real follows; otherwise use mock
-  useEffect(() => {
-    if (!isAuthenticated || !did) {
-      setSuggested(mockUsers.map((u) => ({
-        did: u.handle,
-        handle: u.handle,
-        displayName: u.name,
-        avatar: null,
-        description: u.bio,
-      })));
-      return;
-    }
-
-    async function loadFollows() {
-      try {
-        const res = await fetch(
-          `https://public.api.bsky.app/xrpc/app.bsky.graph.getFollows?actor=${encodeURIComponent(did)}&limit=50`
-        );
-        const data = await res.json();
-        setSuggested((data.follows || []).map((f) => ({
-          did: f.did,
-          handle: f.handle,
-          displayName: f.displayName || f.handle,
-          avatar: f.avatar || null,
-          description: f.description || '',
-        })));
-      } catch {
-        setSuggested(mockUsers.map((u) => ({
-          did: u.handle,
-          handle: u.handle,
-          displayName: u.name,
-          avatar: null,
-          description: u.bio,
-        })));
-      }
-    }
-    loadFollows();
-  }, [isAuthenticated, did]);
-
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
-    setSearching(true);
-    try {
-      const res = await fetch(
-        `https://public.api.bsky.app/xrpc/app.bsky.actor.searchActors?q=${encodeURIComponent(searchQuery)}&limit=10`
-      );
-      const data = await res.json();
-      setSearchResults((data.actors || []).map((a) => ({
-        did: a.did,
-        handle: a.handle,
-        displayName: a.displayName || a.handle,
-        avatar: a.avatar || null,
-        description: a.description || '',
-      })));
-    } catch {
-      setSearchResults([]);
-    } finally {
-      setSearching(false);
-    }
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText('https://www.shelfwise.xyz').then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
   };
 
-  const toggleUser = (handle) => {
-    setFollowedUsers((prev) =>
-      prev.includes(handle) ? prev.filter((h) => h !== handle) : [...prev, handle],
+  const handleShareOnBluesky = () => {
+    window.open(
+      'https://bsky.app/intent/compose?text=I%27m%20tracking%20my%20reading%20on%20Shelfwise%20%E2%80%94%20an%20open%20social%20app%20for%20book%20lovers%20built%20on%20AT%20Protocol.%20Join%20me!%20https%3A%2F%2Fwww.shelfwise.xyz',
+      '_blank',
     );
   };
-
-  const displayUsers = searchResults.length > 0 ? searchResults : suggested;
 
   return (
     <div className="w-full max-w-md mx-auto">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-          <Users className="w-6 h-6" />
-          Find readers you know
+          <Share2 className="w-6 h-6" />
+          Share Shelfwise
         </h2>
       </div>
 
-      {/* Search */}
-      <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }} className="flex gap-2 mb-4">
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search by name or handle..."
-          autoComplete="off"
-          data-1p-ignore="true"
-          data-lpignore="true"
-          data-form-type="other"
-          className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        />
-        <Button size="sm" type="submit" disabled={searching}>
-          {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-        </Button>
-      </form>
+      <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">
+        Shelfwise is better with friends. Invite people you know to join and track their reading alongside you.
+      </p>
 
-      <div className="flex gap-2 mb-4">
-        <Button size="sm" variant="secondary" onClick={() => setFollowedUsers(displayUsers.map((u) => u.handle))}>
-          Follow All
+      <div className="space-y-3 mb-8">
+        <Button size="lg" className="w-full" variant="secondary" onClick={handleCopyLink}>
+          {copied ? <Check className="w-4 h-4" /> : <Link className="w-4 h-4" />}
+          {copied ? 'Link copied!' : 'Copy invite link'}
         </Button>
-        <Button size="sm" variant="ghost" onClick={() => { setFollowedUsers([]); onNext(); }}>
-          Skip
+        <Button size="lg" className="w-full" onClick={handleShareOnBluesky}>
+          <Share2 className="w-4 h-4" />
+          Share on Bluesky
         </Button>
       </div>
 
-      <ul className="space-y-3 mb-8 max-h-[400px] overflow-y-auto">
-        {displayUsers.map((user) => {
-          const isFollowed = followedUsers.includes(user.handle);
-          return (
-            <li
-              key={user.did || user.handle}
-              onClick={() => toggleUser(user.handle)}
-              className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                isFollowed
-                  ? 'border-indigo-300 bg-indigo-50 dark:border-indigo-600 dark:bg-indigo-900/20'
-                  : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
-              }`}
-            >
-              <Avatar name={user.displayName} src={user.avatar} size="md" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{user.displayName}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">@{user.handle}</p>
-                {user.description && (
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1">{user.description}</p>
-                )}
-              </div>
-              <div
-                className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors shrink-0 ${
-                  isFollowed
-                    ? 'bg-indigo-600 border-indigo-600 dark:bg-indigo-500 dark:border-indigo-500'
-                    : 'border-gray-300 dark:border-gray-600'
-                }`}
-              >
-                {isFollowed && <Check className="w-3 h-3 text-white" />}
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-
-      <Button size="lg" className="w-full" onClick={onNext}>
-        {followedUsers.length > 0 ? `Selected ${followedUsers.length} readers` : 'Continue'}
-        <ArrowRight className="w-4 h-4" />
-      </Button>
+      <div className="flex flex-col gap-3">
+        <Button size="lg" className="w-full" onClick={onNext}>
+          Continue
+          <ArrowRight className="w-4 h-4" />
+        </Button>
+        <button
+          onClick={onNext}
+          className="text-sm text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 underline"
+        >
+          Skip
+        </button>
+      </div>
     </div>
   );
 }
@@ -612,7 +513,7 @@ function StepImport({ importedBooks, setImportedBooks, onNext }) {
 
 /* ─── Step 5 — Confirmation ─────────────────────────────────────── */
 
-function StepConfirmation({ followedCount, bookCount, libraryName, onFinish }) {
+function StepConfirmation({ bookCount, libraryName, onFinish }) {
   return (
     <div className="flex flex-col items-center text-center">
       <div className="w-20 h-20 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-6">
@@ -620,8 +521,7 @@ function StepConfirmation({ followedCount, bookCount, libraryName, onFinish }) {
       </div>
       <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-3">You&apos;re all set!</h2>
       <p className="text-gray-500 dark:text-gray-400 mb-10 max-w-sm">
-        Following {followedCount} readers &bull; {bookCount} books imported &bull; Library:{' '}
-        {libraryName || 'none'}
+        {bookCount} books imported &bull; Library: {libraryName || 'none'}
       </p>
       <Button size="lg" className="w-full max-w-xs" onClick={onFinish}>
         Start Reading
@@ -650,7 +550,6 @@ export default function Onboarding({ onComplete, importBooks: importBooksProp })
     handle: '',
     selectedLibrary: null,
   });
-  const [followedUsers, setFollowedUsers] = useState([]);
   const [importedBooks, setImportedBooks] = useState([]);
 
   const updateAccount = (partial) => setAccountData((prev) => ({ ...prev, ...partial }));
@@ -707,9 +606,7 @@ export default function Onboarding({ onComplete, importBooks: importBooksProp })
           {step === 2 && <StepAccount data={accountData} onChange={updateAccount} />}
           {step === 3 && <StepLibrary data={accountData} onChange={updateAccount} onNext={next} />}
           {step === 4 && (
-            <StepFindReaders
-              followedUsers={followedUsers}
-              setFollowedUsers={setFollowedUsers}
+            <StepShareShelfwise
               onNext={next}
             />
           )}
@@ -722,7 +619,6 @@ export default function Onboarding({ onComplete, importBooks: importBooksProp })
           )}
           {step === 6 && (
             <StepConfirmation
-              followedCount={followedUsers.length}
               bookCount={importedBooks.length}
               libraryName={accountData.selectedLibrary?.name}
               onFinish={handleFinish}

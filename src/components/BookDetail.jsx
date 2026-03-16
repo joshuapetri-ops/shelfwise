@@ -9,7 +9,7 @@ import { computeComposite, formatComposite, compositeColor, compositeBg } from '
 import { buildAcquireLinks } from '../lib/purchaseLinks';
 import useBooks from '../hooks/useBooks';
 import useChallenges from '../hooks/useChallenges';
-import { ExternalLink, Trash2, Plus } from 'lucide-react';
+import { ExternalLink, Trash2, Plus, Share2 } from 'lucide-react';
 
 const SHELVES = [
   { key: 'reading', label: 'Reading' },
@@ -284,14 +284,32 @@ export default function BookDetail({ book, isOpen, onClose, onUpdate, onRemove, 
           </div>
         </div>
 
-        {/* ── Footer: Remove ── */}
-        <div className="border-t border-gray-200 pt-4 dark:border-gray-700">
+        {/* ── Footer: Share + Remove ── */}
+        <div className="border-t border-gray-200 pt-4 dark:border-gray-700 flex flex-wrap gap-3">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              const text = book.shelf === 'read'
+                ? `Just finished "${book.title}" by ${book.author} on Shelfwise 📖`
+                : book.shelf === 'reading'
+                  ? `Currently reading "${book.title}" by ${book.author} 📖`
+                  : `Added "${book.title}" by ${book.author} to my reading list 📖`;
+              window.open(
+                'https://bsky.app/intent/compose?text=' + encodeURIComponent(text + '\nhttps://www.shelfwise.xyz'),
+                '_blank'
+              );
+            }}
+          >
+            <Share2 size={14} />
+            Share on Bluesky
+          </Button>
           <Button
             onClick={handleRemove}
             className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800"
           >
             <Trash2 size={16} />
-            Remove from Library
+            Remove
           </Button>
         </div>
       </div>

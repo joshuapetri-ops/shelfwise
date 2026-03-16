@@ -94,16 +94,12 @@ export default function Challenges() {
     )
   }
 
-  // Build leaderboard with participants + user progress
+  // Build leaderboard with just the user's progress
   const leaderboards = useMemo(() => {
     const map = {}
     for (const c of challenges) {
       const progress = getChallengeProgress(c, books)
-      const entries = [
-        { name: 'You', handle: 'you', progress },
-        ...(c.participants || []),
-      ].sort((a, b) => b.progress - a.progress)
-      map[c.id] = entries
+      map[c.id] = [{ name: 'You', handle: 'you', progress }]
     }
     return map
   }, [challenges, books, getChallengeProgress])
@@ -191,7 +187,7 @@ export default function Challenges() {
             const isExpanded = expandedId === challenge.id
             const challengeBooks = isExpanded ? getBooksForChallenge(challenge) : []
             const leaderboard = leaderboards[challenge.id] || []
-            const participantCount = (challenge.participants?.length || 0) + 1
+            const participantCount = 1
 
             return (
               <div
@@ -233,7 +229,7 @@ export default function Challenges() {
                 {/* Status row */}
                 <div className="mt-2 flex items-center justify-between text-sm">
                   <span className="text-gray-500 dark:text-gray-400">
-                    {participantCount} participants
+                    {participantCount} participant
                   </span>
                   {completed ? (
                     <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">

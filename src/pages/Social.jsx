@@ -3,7 +3,6 @@ import Avatar from '../components/ui/Avatar'
 import BookCover from '../components/ui/BookCover'
 import Pill from '../components/ui/Pill'
 import Button from '../components/ui/Button'
-import { mockActivity } from '../lib/mockData'
 import useBooks from '../hooks/useBooks'
 import useAuth from '../hooks/useAuth'
 import useSocialFeed from '../hooks/useSocialFeed'
@@ -61,9 +60,8 @@ export default function Social() {
     }
   }
 
-  // Use live feed when authenticated, fall back to mock data when not
-  const hasLiveData = isLive && liveEvents.length > 0
-  const activity = hasLiveData ? liveEvents : mockActivity
+  // Use live feed when authenticated
+  const activity = isLive ? liveEvents : []
 
   const filtered =
     activeFilter === 'All'
@@ -162,21 +160,32 @@ export default function Social() {
         ))}
       </div>
 
-      {/* Source indicator */}
-      {isLive && !feedLoading && !hasLiveData && (
-        <div className="mb-6 rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950 p-4 text-center">
-          <p className="text-sm text-indigo-700 dark:text-indigo-300">
-            None of the people you follow are using Shelfwise yet.
+      {/* Not authenticated prompt */}
+      {!isAuthenticated && (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <Users className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-4" />
+          <p className="text-gray-500 dark:text-gray-400">
+            Sign in to see what your friends are reading.
           </p>
-          <p className="text-xs text-indigo-500 dark:text-indigo-400 mt-1">
-            Showing sample activity below. Share Shelfwise with friends to see their real reading activity!
+        </div>
+      )}
+
+      {/* Authenticated empty state */}
+      {isAuthenticated && !feedLoading && activity.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <BookOpen className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-4" />
+          <p className="text-gray-700 dark:text-gray-300 font-medium mb-1">
+            No activity yet
+          </p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm">
+            Share Shelfwise with friends so you can see what they are reading!
           </p>
         </div>
       )}
 
       {/* Activity feed */}
       <div className="space-y-4">
-        {filtered.length === 0 && (
+        {isAuthenticated && activity.length > 0 && filtered.length === 0 && (
           <p className="text-center text-gray-500 dark:text-gray-400 py-12">
             No activity to show for this filter.
           </p>

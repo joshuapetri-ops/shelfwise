@@ -26,6 +26,7 @@ function bookToRecord(book) {
     shelf: book.shelf || 'wantToRead',
     tags: book.tags || [],
     notes: book.notes || '',
+    ratings: book.ratings ? JSON.stringify(book.ratings) : '',
     createdAt: book.addedAt || new Date().toISOString(),
   }
 }
@@ -44,7 +45,7 @@ function recordToBook(record, uri) {
     tags: record.tags || [],
     notes: record.notes || '',
     addedAt: record.createdAt,
-    ratings: {},
+    ratings: record.ratings ? JSON.parse(record.ratings) : {},
     source: 'atproto',
     atUri: uri,
   }
