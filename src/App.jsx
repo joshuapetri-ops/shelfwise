@@ -23,7 +23,7 @@ export default function App() {
   const { updateBook, removeBook, importBooks } = useBooks()
   const { criteria } = useCriteria()
   const { settings } = useSettings()
-  const { isAuthenticated, loading: authLoading } = useAuth()
+  const { loading: authLoading } = useAuth()
   const [detailBook, setDetailBook] = useState(null)
   const [onboarded, setOnboarded] = useState(isOnboarded)
 
@@ -54,7 +54,7 @@ export default function App() {
     )
   }
 
-  if (!onboarded && !isAuthenticated) {
+  if (!onboarded) {
     return (
       <Routes>
         <Route path="/oauth/callback" element={<OAuthCallback />} />

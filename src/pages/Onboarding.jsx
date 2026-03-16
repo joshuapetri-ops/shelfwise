@@ -548,8 +548,10 @@ export default function Onboarding({ onComplete, importBooks: importBooksProp })
   const { importBooks: importBooksHook } = useBooks();
   const doImport = importBooksProp || importBooksHook;
   const { updateSetting } = useSettings();
+  const { isAuthenticated } = useAuth();
 
-  const [step, setStep] = useState(1);
+  // If user just came back from OAuth, skip to step 3 (Find Readers)
+  const [step, setStep] = useState(isAuthenticated ? 3 : 1);
 
   // Collected data
   const [accountData, setAccountData] = useState({

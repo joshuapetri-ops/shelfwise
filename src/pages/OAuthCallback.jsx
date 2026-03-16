@@ -5,7 +5,8 @@ import useAuth from '../hooks/useAuth'
 /**
  * OAuth callback page. The BrowserOAuthClient.init() in useAuth
  * handles the actual token exchange. This page just waits for
- * auth to finish loading, then redirects to home.
+ * auth to finish loading, then redirects back to onboarding
+ * so the user can complete the remaining setup steps.
  */
 export default function OAuthCallback() {
   const { loading, isAuthenticated, error } = useAuth()
@@ -14,11 +15,11 @@ export default function OAuthCallback() {
   useEffect(() => {
     if (!loading) {
       if (isAuthenticated) {
-        // Auth succeeded — mark onboarded and go home
-        localStorage.setItem('shelfwise-onboarded', 'true')
+        // Auth succeeded — send back to onboarding to finish remaining steps
+        // (library connection, find readers, import, etc.)
+        // Do NOT mark as onboarded yet — that happens when they finish the wizard
         navigate('/', { replace: true })
       } else if (error) {
-        // Auth failed — go back to onboarding
         navigate('/', { replace: true })
       }
     }
