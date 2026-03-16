@@ -11,9 +11,10 @@ const SHELF_OPTIONS = [
   { value: 'wantToRead', label: 'Want to Read', color: 'indigo' },
   { value: 'reading', label: 'Reading', color: 'amber' },
   { value: 'read', label: 'Read', color: 'green' },
+  { value: 'dnf', label: "Couldn't Finish", color: 'red' },
 ]
 
-export default function Search() {
+export default function Search({ onBookClick }) {
   const { books, addBook } = useBooks()
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(false)
@@ -60,6 +61,15 @@ export default function Search() {
     setOpenDropdown(null)
   }
 
+  const handleCardClick = (book) => {
+    const existing = findInLibrary(book)
+    if (existing) {
+      onBookClick?.(existing)
+    } else {
+      onBookClick?.(book)
+    }
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="mb-8">
@@ -100,7 +110,16 @@ export default function Search() {
             return (
               <div
                 key={id}
-                className="flex flex-col items-center rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 shadow-sm"
+                role="button"
+                tabIndex={0}
+                onClick={() => handleCardClick(book)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    handleCardClick(book)
+                  }
+                }}
+                className="flex flex-col items-center rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 shadow-sm cursor-pointer transition hover:shadow-md active:scale-[0.98]"
               >
                 <BookCover
                   coverId={book.coverId}
@@ -124,7 +143,7 @@ export default function Search() {
                   )}
                 </div>
 
-                <div className="mt-3 w-full flex justify-center">
+                <div className="mt-3 w-full flex justify-center" onClick={(e) => e.stopPropagation()}>
                   {existing ? (
                     <Pill color={shelfColor(existing.shelf)}>
                       <Check size={12} className="mr-0.5" />

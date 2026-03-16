@@ -1,6 +1,8 @@
-import { useState, useEffect, useCallback } from 'react'
+/* eslint-disable react-refresh/only-export-components */
+import { useState, useEffect, useCallback, createContext, useContext } from 'react'
 
 const STORAGE_KEY = 'shelfwise-books'
+const BooksContext = createContext()
 
 function load() {
   try {
@@ -10,7 +12,7 @@ function load() {
   }
 }
 
-export default function useBooks() {
+export function BooksProvider({ children }) {
   const [books, setBooks] = useState(load)
 
   useEffect(() => {
@@ -45,5 +47,13 @@ export default function useBooks() {
     })
   }, [])
 
-  return { books, addBook, updateBook, removeBook, getBooksByShelf, importBooks }
+  return (
+    <BooksContext.Provider value={{ books, addBook, updateBook, removeBook, getBooksByShelf, importBooks }}>
+      {children}
+    </BooksContext.Provider>
+  )
+}
+
+export default function useBooks() {
+  return useContext(BooksContext)
 }

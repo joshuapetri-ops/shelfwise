@@ -59,7 +59,7 @@ export default function App() {
             path="/"
             element={<Shelves onBookClick={openDetail} libraryCode={settings.libraryCode} />}
           />
-          <Route path="/search" element={<Search />} />
+          <Route path="/search" element={<Search onBookClick={openDetail} />} />
           <Route path="/social" element={<Social />} />
           <Route path="/for-you" element={<ForYou />} />
           <Route path="/settings" element={<Settings onLogout={() => setOnboarded(false)} />} />

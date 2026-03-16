@@ -14,12 +14,17 @@ export default function SearchBar({ onSearch, onSelect }) {
   const debouncedQuery = useDebounce(query, 300)
 
   useEffect(() => {
+    const id = ++fetchIdRef.current
     if (debouncedQuery.trim().length < 2) {
-      setSuggestions([])
-      setOpen(false)
+      // Use a microtask to avoid synchronous setState in effect
+      Promise.resolve().then(() => {
+        if (id === fetchIdRef.current) {
+          setSuggestions([])
+          setOpen(false)
+        }
+      })
       return
     }
-    const id = ++fetchIdRef.current
     autocomplete(debouncedQuery).then((results) => {
       if (id === fetchIdRef.current) {
         setSuggestions(results ?? [])
@@ -52,7 +57,9 @@ export default function SearchBar({ onSearch, onSelect }) {
             onFocus={() => suggestions.length > 0 && setOpen(true)}
             onBlur={() => setOpen(false)}
             placeholder="Search books..."
-            data-1p-ignore
+            data-1p-ignore="true"
+            data-lpignore="true"
+            data-form-type="other"
             autoComplete="off"
             className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 py-2 pl-3 pr-3 text-sm focus:border-indigo-400 focus:outline-none dark:text-gray-100"
           />

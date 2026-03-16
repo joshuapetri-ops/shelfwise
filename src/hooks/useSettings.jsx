@@ -1,6 +1,8 @@
-import { useState, useEffect, useCallback } from 'react'
+/* eslint-disable react-refresh/only-export-components */
+import { useState, useEffect, useCallback, createContext, useContext } from 'react'
 
 const STORAGE_KEY = 'shelfwise-settings'
+const SettingsContext = createContext()
 
 const DEFAULTS = {
   theme: 'light',
@@ -18,7 +20,7 @@ function load() {
   }
 }
 
-export default function useSettings() {
+export function SettingsProvider({ children }) {
   const [settings, setSettings] = useState(load)
 
   useEffect(() => {
@@ -37,5 +39,13 @@ export default function useSettings() {
     setSettings((prev) => ({ ...prev, [key]: value }))
   }, [])
 
-  return { settings, updateSetting }
+  return (
+    <SettingsContext.Provider value={{ settings, updateSetting }}>
+      {children}
+    </SettingsContext.Provider>
+  )
+}
+
+export default function useSettings() {
+  return useContext(SettingsContext)
 }

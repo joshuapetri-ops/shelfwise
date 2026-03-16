@@ -1,6 +1,8 @@
-import { useState, useEffect, useCallback } from 'react'
+/* eslint-disable react-refresh/only-export-components */
+import { useState, useEffect, useCallback, createContext, useContext } from 'react'
 
 const STORAGE_KEY = 'shelfwise-criteria'
+const CriteriaContext = createContext()
 
 const DEFAULTS = [
   { id: 'overall', name: 'Overall', emoji: '⭐', max: 5, type: 'stars' },
@@ -19,7 +21,7 @@ function load() {
   }
 }
 
-export default function useCriteria() {
+export function CriteriaProvider({ children }) {
   const [criteria, setCriteria] = useState(load)
 
   useEffect(() => {
@@ -42,5 +44,13 @@ export default function useCriteria() {
     setCriteria(newOrder)
   }, [])
 
-  return { criteria, addCriterion, updateCriterion, removeCriterion, reorderCriteria }
+  return (
+    <CriteriaContext.Provider value={{ criteria, addCriterion, updateCriterion, removeCriterion, reorderCriteria }}>
+      {children}
+    </CriteriaContext.Provider>
+  )
+}
+
+export default function useCriteria() {
+  return useContext(CriteriaContext)
 }

@@ -21,7 +21,7 @@ export default function NavBar() {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 pb-[env(safe-area-inset-bottom)]">
       <ul className="flex justify-around">
-        {TABS.map(({ to, label, icon: Icon }) => {
+        {TABS.map(({ to, label, icon: Icon }) => { // eslint-disable-line no-unused-vars
           const active = isActive(to)
           return (
             <li key={to}>

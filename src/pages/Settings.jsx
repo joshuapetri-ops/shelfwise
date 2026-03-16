@@ -41,6 +41,24 @@ const TAP_ACTIONS = [
   { value: 'acquire', label: 'Acquire Book' },
 ]
 
+function Toggle({ checked, onChange }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+        checked ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600'
+      }`}
+    >
+      <span
+        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+          checked ? 'translate-x-6' : 'translate-x-1'
+        }`}
+      />
+    </button>
+  )
+}
+
 export default function Settings({ onLogout }) {
   const { settings, updateSetting } = useSettings()
   const { criteria, addCriterion, updateCriterion, removeCriterion, reorderCriteria } = useCriteria()
@@ -102,15 +120,39 @@ export default function Settings({ onLogout }) {
     setTimeout(() => setCriteriaFeedback(null), 2000)
   }
 
-  const handleImportCriteria = () => {
+  const [previewCriteria, setPreviewCriteria] = useState(null)
+
+  const handlePreviewCriteria = () => {
     const decoded = decodeCriteria(importCode.trim())
     if (decoded && Array.isArray(decoded)) {
-      reorderCriteria(decoded)
-      setImportCode('')
-      setCriteriaFeedback('Criteria imported successfully!')
+      setPreviewCriteria(decoded)
+      setCriteriaFeedback(null)
     } else {
       setCriteriaFeedback('Invalid criteria code. Please check and try again.')
+      setPreviewCriteria(null)
+      setTimeout(() => setCriteriaFeedback(null), 3000)
     }
+  }
+
+  const handleImportCriteriaReplace = () => {
+    if (!previewCriteria) return
+    reorderCriteria(previewCriteria)
+    setImportCode('')
+    setPreviewCriteria(null)
+    setCriteriaFeedback('Criteria imported successfully!')
+    setTimeout(() => setCriteriaFeedback(null), 3000)
+  }
+
+  const handleImportCriteriaMerge = () => {
+    if (!previewCriteria) return
+    const existingIds = new Set(criteria.map((c) => c.id))
+    const toAdd = previewCriteria.filter((c) => !existingIds.has(c.id))
+    for (const c of toAdd) {
+      addCriterion(c)
+    }
+    setImportCode('')
+    setPreviewCriteria(null)
+    setCriteriaFeedback(`Merged ${toAdd.length} new criteria!`)
     setTimeout(() => setCriteriaFeedback(null), 3000)
   }
 
@@ -166,23 +208,6 @@ export default function Settings({ onLogout }) {
           lib.city.toLowerCase().includes(librarySearch.toLowerCase()),
       )
     : []
-
-  // --- Toggle helper ---
-  const Toggle = ({ checked, onChange }) => (
-    <button
-      type="button"
-      onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-        checked ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600'
-      }`}
-    >
-      <span
-        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-          checked ? 'translate-x-6' : 'translate-x-1'
-        }`}
-      />
-    </button>
-  )
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
@@ -506,16 +531,38 @@ export default function Settings({ onLogout }) {
                   <input
                     type="text"
                     value={importCode}
-                    onChange={(e) => setImportCode(e.target.value)}
+                    onChange={(e) => { setImportCode(e.target.value); setPreviewCriteria(null) }}
                     placeholder="Paste criteria code here"
                     className="flex-1 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                    onKeyDown={(e) => e.key === 'Enter' && handleImportCriteria()}
+                    onKeyDown={(e) => e.key === 'Enter' && handlePreviewCriteria()}
                   />
-                  <Button size="sm" onClick={handleImportCriteria}>
+                  <Button size="sm" onClick={handlePreviewCriteria}>
                     <Upload size={16} />
-                    Import
+                    Preview
                   </Button>
                 </div>
+                {previewCriteria && (
+                  <div className="mt-3 p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800">
+                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
+                      Preview ({previewCriteria.length} criteria)
+                    </p>
+                    <div className="flex flex-wrap gap-1 mb-3">
+                      {previewCriteria.map((c) => (
+                        <Pill key={c.id} color="indigo">
+                          {c.emoji} {c.name}
+                        </Pill>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={handleImportCriteriaReplace}>
+                        Use Template (Replace)
+                      </Button>
+                      <Button size="sm" variant="secondary" onClick={handleImportCriteriaMerge}>
+                        Merge (Add Missing)
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
               {/* Feedback */}
               {criteriaFeedback && (
@@ -598,6 +645,10 @@ export default function Settings({ onLogout }) {
                 value={librarySearch}
                 onChange={(e) => setLibrarySearch(e.target.value)}
                 placeholder="Search libraries by name or city..."
+                autoComplete="off"
+                data-1p-ignore="true"
+                data-lpignore="true"
+                data-form-type="other"
                 className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
               />
             </div>

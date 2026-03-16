@@ -18,12 +18,14 @@ const SHELF_LABELS = {
   wantToRead: 'Want to Read',
   reading: 'Reading',
   read: 'Read',
+  dnf: "Couldn't Finish",
 }
 
 const SHELF_COLORS = {
   wantToRead: 'indigo',
   reading: 'amber',
   read: 'green',
+  dnf: 'red',
 }
 
 export default function Social() {

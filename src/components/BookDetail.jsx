@@ -13,6 +13,7 @@ const SHELVES = [
   { key: 'reading', label: 'Reading' },
   { key: 'wantToRead', label: 'Want to Read' },
   { key: 'read', label: 'Read' },
+  { key: 'dnf', label: "Couldn't Finish" },
 ];
 
 export default function BookDetail({ book, isOpen, onClose, onUpdate, onRemove, criteria, libraryCode }) {

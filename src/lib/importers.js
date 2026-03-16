@@ -26,6 +26,7 @@ function mapGoodreadsShelf(shelf) {
   if (normalized === 'read') return 'read';
   if (normalized === 'currently-reading') return 'reading';
   if (normalized === 'to-read') return 'wantToRead';
+  if (normalized === 'did-not-finish' || normalized === 'dnf') return 'dnf';
   return normalized;
 }
 
@@ -279,7 +280,7 @@ export async function enrichCovers(books, onProgress) {
   for (let i = 0; i < total; i += BATCH_SIZE) {
     const batch = booksNeedingCovers.slice(i, i + BATCH_SIZE);
 
-    const results = await Promise.allSettled(
+    await Promise.allSettled(
       batch.map((book) =>
         lookupByIsbn(book.isbn).then((data) => {
           const coverId = data?.covers?.[0] ?? data?.coverId;
@@ -306,7 +307,7 @@ export async function enrichCovers(books, onProgress) {
  * @param {Object} criteria - Optional filter/sort criteria (reserved for future use).
  * @returns {string} CSV string.
  */
-export function exportShelfwiseCSV(books, criteria) {
+export function exportShelfwiseCSV(books) {
   const exportData = books.map((book) => ({
     key: book.key || '',
     title: book.title || '',

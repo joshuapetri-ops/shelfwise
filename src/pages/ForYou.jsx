@@ -82,24 +82,29 @@ export default function ForYou() {
       </p>
 
       {/* Custom prompt input */}
-      <div className="mb-4">
-        <input
-          type="text"
-          value={customPrompt}
-          onChange={(e) => setCustomPrompt(e.target.value)}
-          placeholder='e.g. "I want something like Project Hail Mary"'
-          className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 py-2 px-3 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:border-indigo-400 focus:outline-none"
-        />
-      </div>
+      <form onSubmit={(e) => { e.preventDefault(); handleGetRecommendations() }} className="mb-8">
+        <div className="mb-4">
+          <input
+            type="text"
+            value={customPrompt}
+            onChange={(e) => setCustomPrompt(e.target.value)}
+            placeholder='e.g. "I want something like Project Hail Mary"'
+            autoComplete="off"
+            data-1p-ignore="true"
+            data-lpignore="true"
+            data-form-type="other"
+            className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 py-2 px-3 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:border-indigo-400 focus:outline-none"
+          />
+        </div>
 
-      <Button
-        onClick={handleGetRecommendations}
-        disabled={loading}
-        className="mb-8"
-      >
-        <Sparkles size={16} />
-        {loading ? 'Getting Recommendations...' : 'Get Recommendations'}
-      </Button>
+        <Button
+          type="submit"
+          disabled={loading}
+        >
+          <Sparkles size={16} />
+          {loading ? 'Getting Recommendations...' : 'Get Recommendations'}
+        </Button>
+      </form>
 
       {/* Loading state */}
       {loading && (

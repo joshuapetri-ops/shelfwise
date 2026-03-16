@@ -4,23 +4,27 @@ import Pill from './ui/Pill'
 import Stars from './ui/Stars'
 import { computeComposite, formatComposite, compositeColor, compositeBg } from '../lib/compositeScore'
 import { buildAcquireLinks } from '../lib/purchaseLinks'
+import useSettings from '../hooks/useSettings'
 import { ChevronDown, ExternalLink } from 'lucide-react'
 
 const shelfStyles = {
   reading: 'indigo',
   read: 'green',
   wantToRead: 'amber',
+  dnf: 'red',
 }
 
 const shelfLabels = {
   reading: 'Reading',
   read: 'Read',
   wantToRead: 'Want to Read',
+  dnf: "Couldn't Finish",
 }
 
 export default function BookCard({ book, criteria, libraryCode, onClick }) {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef(null)
+  const { settings } = useSettings()
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -36,6 +40,28 @@ export default function BookCard({ book, criteria, libraryCode, onClick }) {
 
   const composite = computeComposite(book.ratings, criteria)
   const links = buildAcquireLinks(book, libraryCode)
+
+  // Map settings acquire value to link name
+  const acquireNameMap = {
+    libby: 'Libby',
+    bookshop: 'Bookshop.org',
+    powells: "Powell's",
+    amazon: 'Amazon',
+    kindle: 'Kindle',
+  }
+
+  function handleGetClick() {
+    const defaultAcquire = settings?.defaultAcquire
+    if (defaultAcquire && defaultAcquire !== 'none') {
+      const targetName = acquireNameMap[defaultAcquire]
+      const link = links.find((l) => l.name === targetName)
+      if (link) {
+        window.open(link.url, '_blank')
+        return
+      }
+    }
+    setDropdownOpen((prev) => !prev)
+  }
 
   function handleCardClick() {
     if (!dropdownOpen) {
@@ -73,7 +99,7 @@ export default function BookCard({ book, criteria, libraryCode, onClick }) {
         {/* Shelf badge & composite score */}
         <div className="flex items-center gap-2 flex-wrap">
           {book.shelf && (
-            <Pill color={shelfStyles[book.shelf]}>
+            <Pill color={shelfStyles[book.shelf] ?? 'gray'}>
               {shelfLabels[book.shelf] ?? book.shelf}
             </Pill>
           )}
@@ -96,7 +122,7 @@ export default function BookCard({ book, criteria, libraryCode, onClick }) {
         <div ref={dropdownRef} className="relative mt-1" onClick={(e) => e.stopPropagation()}>
           <button
             type="button"
-            onClick={() => setDropdownOpen((prev) => !prev)}
+            onClick={handleGetClick}
             className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           >
             Get

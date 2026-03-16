@@ -31,7 +31,8 @@ export async function searchBooks(query, { limit = 20 } = {}) {
 
   const data = await response.json();
 
-  return (data.docs || []).map((doc) => ({
+  const results = (data.docs || []).map((doc) => ({
+    key: doc.key || null,
     title: doc.title || "Unknown Title",
     author: Array.isArray(doc.author_name)
       ? doc.author_name[0]
@@ -41,6 +42,15 @@ export async function searchBooks(query, { limit = 20 } = {}) {
     isbn: Array.isArray(doc.isbn) ? doc.isbn[0] : doc.isbn || null,
     subjects: Array.isArray(doc.subject) ? doc.subject.slice(0, 10) : [],
   }));
+
+  // Deduplicate by normalized title + author, keeping the first (most relevant) entry
+  const seen = new Set();
+  return results.filter((book) => {
+    const key = `${book.title.toLowerCase().trim()}|${book.author.toLowerCase().trim()}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 /**
@@ -58,7 +68,7 @@ export async function autocomplete(query, limit = 5) {
   const params = new URLSearchParams({
     q: query.trim(),
     limit: String(limit),
-    fields: "title,author_name,cover_i",
+    fields: "key,title,author_name,cover_i,first_publish_year,isbn",
   });
 
   const response = await fetch(`${BASE_URL}/search.json?${params}`);
@@ -72,11 +82,14 @@ export async function autocomplete(query, limit = 5) {
   const data = await response.json();
 
   return (data.docs || []).map((doc) => ({
+    key: doc.key || null,
     title: doc.title || "Unknown Title",
     author: Array.isArray(doc.author_name)
       ? doc.author_name[0]
       : doc.author_name || "Unknown Author",
     coverId: doc.cover_i ?? null,
+    year: doc.first_publish_year ?? null,
+    isbn: Array.isArray(doc.isbn) ? doc.isbn[0] : doc.isbn || null,
   }));
 }
 
