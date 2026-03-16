@@ -1,83 +1,151 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import useAuth from './useAuth'
 
-const API_URL = import.meta.env.VITE_API_URL || ''
+const BSKY_API = 'https://public.api.bsky.app/xrpc'
+const BOOK_COLLECTION = 'app.shelfwise.book'
 
 /**
- * Format a feed event from the server into a display-friendly shape.
+ * Fetch the user's follows from the Bluesky API.
  */
-function formatFeedEvent(event) {
-  const record = event.record || {}
-  const collection = event.collection
+async function fetchFollows(did) {
+  const follows = []
+  let cursor
 
-  let action = ''
-  let book = null
+  do {
+    const params = new URLSearchParams({ actor: did, limit: '100' })
+    if (cursor) params.append('cursor', cursor)
 
-  if (collection === 'app.shelfwise.book') {
-    const shelf = record.shelf
-    if (shelf === 'read') action = 'finished'
-    else if (shelf === 'reading') action = 'started reading'
-    else if (shelf === 'wantToRead') action = 'wants to read'
-    else if (shelf === 'dnf') action = "couldn't finish"
-    else action = `shelved (${shelf})`
+    const res = await fetch(`${BSKY_API}/app.bsky.graph.getFollows?${params}`)
+    if (!res.ok) break
 
-    book = {
-      title: record.title || 'Unknown',
-      author: record.author || '',
-      coverId: record.coverId || null,
+    const data = await res.json()
+    for (const f of data.follows || []) {
+      follows.push({
+        did: f.did,
+        handle: f.handle,
+        displayName: f.displayName || f.handle,
+        avatar: f.avatar || null,
+      })
     }
-  } else if (collection === 'app.shelfwise.review') {
-    action = 'reviewed a book'
-  } else if (collection === 'app.shelfwise.challenge') {
-    action = `created a challenge: "${record.title}"`
-  }
+    cursor = data.cursor
+  } while (cursor && follows.length < 200)
 
-  return {
-    user: {
-      name: event.displayName || event.handle || event.did,
-      handle: event.handle || event.did,
-      avatar: event.avatarUrl || null,
-    },
-    action,
-    book,
-    timestamp: event.eventTime
-      ? new Date(event.eventTime).toLocaleDateString()
-      : '',
-    raw: event,
+  return follows
+}
+
+/**
+ * Fetch shelfwise book records from a user's PDS.
+ */
+async function fetchUserBooks(did) {
+  try {
+    const res = await fetch(
+      `https://bsky.social/xrpc/com.atproto.repo.listRecords?repo=${encodeURIComponent(did)}&collection=${BOOK_COLLECTION}&limit=20`
+    )
+    if (!res.ok) return []
+
+    const data = await res.json()
+    return (data.records || []).map((r) => ({
+      uri: r.uri,
+      record: r.value,
+      createdAt: r.value.createdAt,
+    }))
+  } catch {
+    return []
   }
 }
 
 /**
+ * Convert a book record into a feed event.
+ */
+function toFeedEvent(user, bookRecord) {
+  const record = bookRecord.record
+  const shelf = record.shelf
+
+  let action = ''
+  if (shelf === 'read') action = 'finished'
+  else if (shelf === 'reading') action = 'started reading'
+  else if (shelf === 'wantToRead') action = 'wants to read'
+  else if (shelf === 'dnf') action = "couldn't finish"
+  else action = 'added a book'
+
+  return {
+    user: {
+      name: user.displayName,
+      handle: user.handle,
+      avatar: user.avatar,
+    },
+    action,
+    book: {
+      title: record.title || 'Unknown',
+      author: record.author || '',
+      coverId: record.coverId || null,
+    },
+    timestamp: bookRecord.createdAt
+      ? formatTimeAgo(new Date(bookRecord.createdAt))
+      : '',
+  }
+}
+
+function formatTimeAgo(date) {
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000)
+  if (seconds < 60) return 'just now'
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `${minutes}m ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  if (days < 7) return `${days}d ago`
+  return date.toLocaleDateString()
+}
+
+/**
  * Hook for fetching the social feed.
- * When authenticated and API_URL is set, fetches from the server.
- * Falls back to mock data when offline or unauthenticated.
+ * When authenticated, fetches book records directly from followers' PDSes.
+ * Falls back to mock data when unauthenticated.
  */
 export default function useSocialFeed() {
   const { isAuthenticated, did } = useAuth()
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
-  const eventSourceRef = useRef(null)
 
   const fetchFeed = useCallback(async () => {
-    if (!isAuthenticated || !did || !API_URL) return
+    if (!isAuthenticated || !did) return
 
     setLoading(true)
     setError(null)
 
     try {
-      // Sync follows first
-      await fetch(`${API_URL}/api/follows/sync`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ did }),
+      // Get who the user follows
+      const follows = await fetchFollows(did)
+
+      // Fetch shelfwise books from each followed user (in parallel, max 10 at a time)
+      const allEvents = []
+      const BATCH_SIZE = 10
+
+      for (let i = 0; i < follows.length; i += BATCH_SIZE) {
+        const batch = follows.slice(i, i + BATCH_SIZE)
+        const results = await Promise.allSettled(
+          batch.map(async (user) => {
+            const books = await fetchUserBooks(user.did)
+            return books.map((b) => toFeedEvent(user, b))
+          })
+        )
+        for (const result of results) {
+          if (result.status === 'fulfilled') {
+            allEvents.push(...result.value)
+          }
+        }
+      }
+
+      // Sort by most recent first
+      allEvents.sort((a, b) => {
+        const ta = a.timestamp || ''
+        const tb = b.timestamp || ''
+        return tb.localeCompare(ta)
       })
 
-      // Fetch feed
-      const res = await fetch(`${API_URL}/api/feed?did=${encodeURIComponent(did)}&limit=50`)
-      const data = await res.json()
-
-      setEvents((data.events || []).map(formatFeedEvent))
+      setEvents(allEvents)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -85,35 +153,15 @@ export default function useSocialFeed() {
     }
   }, [isAuthenticated, did])
 
-  // Initial fetch
   useEffect(() => {
     fetchFeed()
   }, [fetchFeed])
 
-  // SSE for live updates
-  useEffect(() => {
-    if (!isAuthenticated || !did || !API_URL) return
-
-    const es = new EventSource(`${API_URL}/api/feed/live?did=${encodeURIComponent(did)}`)
-    eventSourceRef.current = es
-
-    es.onmessage = (msg) => {
-      try {
-        const event = JSON.parse(msg.data)
-        if (event.type === 'connected') return
-        setEvents((prev) => [formatFeedEvent(event), ...prev])
-      } catch { /* ignore parse errors */ }
-    }
-
-    es.onerror = () => {
-      es.close()
-    }
-
-    return () => {
-      es.close()
-      eventSourceRef.current = null
-    }
-  }, [isAuthenticated, did])
-
-  return { events, loading, error, refresh: fetchFeed, isLive: !!API_URL && isAuthenticated }
+  return {
+    events,
+    loading,
+    error,
+    refresh: fetchFeed,
+    isLive: isAuthenticated,
+  }
 }

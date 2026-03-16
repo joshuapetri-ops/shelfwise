@@ -33,8 +33,9 @@ export default function Social() {
   const { events: liveEvents, loading: feedLoading, isLive } = useSocialFeed()
   const [activeFilter, setActiveFilter] = useState('All')
 
-  // Use live feed when available, fall back to mock data
-  const activity = isLive && liveEvents.length > 0 ? liveEvents : mockActivity
+  // Use live feed when authenticated, fall back to mock data when not
+  const hasLiveData = isLive && liveEvents.length > 0
+  const activity = hasLiveData ? liveEvents : mockActivity
 
   const filtered =
     activeFilter === 'All'
@@ -90,6 +91,18 @@ export default function Social() {
           </button>
         ))}
       </div>
+
+      {/* Source indicator */}
+      {isLive && !feedLoading && !hasLiveData && (
+        <div className="mb-6 rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950 p-4 text-center">
+          <p className="text-sm text-indigo-700 dark:text-indigo-300">
+            None of the people you follow are using Shelfwise yet.
+          </p>
+          <p className="text-xs text-indigo-500 dark:text-indigo-400 mt-1">
+            Showing sample activity below. Share Shelfwise with friends to see their real reading activity!
+          </p>
+        </div>
+      )}
 
       {/* Activity feed */}
       <div className="space-y-4">

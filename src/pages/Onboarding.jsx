@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BookOpen, ArrowRight, ArrowLeft, Upload, Search, Check, Users, Globe, Loader2 } from 'lucide-react';
 import useBooks from '../hooks/useBooks';
@@ -284,14 +284,80 @@ function StepAccount({ data, onChange, onNext }) {
 /* ─── Step 3 — Find Readers ─────────────────────────────────────── */
 
 function StepFindReaders({ followedUsers, setFollowedUsers, onNext }) {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [suggested, setSuggested] = useState([]);
+  const { isAuthenticated, did } = useAuth();
+
+  // Load suggested users: if authenticated, use real follows; otherwise use mock
+  useEffect(() => {
+    if (!isAuthenticated || !did) {
+      setSuggested(mockUsers.map((u) => ({
+        did: u.handle,
+        handle: u.handle,
+        displayName: u.name,
+        avatar: null,
+        description: u.bio,
+      })));
+      return;
+    }
+
+    async function loadFollows() {
+      try {
+        const res = await fetch(
+          `https://public.api.bsky.app/xrpc/app.bsky.graph.getFollows?actor=${encodeURIComponent(did)}&limit=50`
+        );
+        const data = await res.json();
+        setSuggested((data.follows || []).map((f) => ({
+          did: f.did,
+          handle: f.handle,
+          displayName: f.displayName || f.handle,
+          avatar: f.avatar || null,
+          description: f.description || '',
+        })));
+      } catch {
+        setSuggested(mockUsers.map((u) => ({
+          did: u.handle,
+          handle: u.handle,
+          displayName: u.name,
+          avatar: null,
+          description: u.bio,
+        })));
+      }
+    }
+    loadFollows();
+  }, [isAuthenticated, did]);
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+    setSearching(true);
+    try {
+      const res = await fetch(
+        `https://public.api.bsky.app/xrpc/app.bsky.actor.searchActors?q=${encodeURIComponent(searchQuery)}&limit=10`
+      );
+      const data = await res.json();
+      setSearchResults((data.actors || []).map((a) => ({
+        did: a.did,
+        handle: a.handle,
+        displayName: a.displayName || a.handle,
+        avatar: a.avatar || null,
+        description: a.description || '',
+      })));
+    } catch {
+      setSearchResults([]);
+    } finally {
+      setSearching(false);
+    }
+  };
+
   const toggleUser = (handle) => {
     setFollowedUsers((prev) =>
       prev.includes(handle) ? prev.filter((h) => h !== handle) : [...prev, handle],
     );
   };
 
-  const followAll = () => setFollowedUsers(mockUsers.map((u) => u.handle));
-  const skipAll = () => setFollowedUsers([]);
+  const displayUsers = searchResults.length > 0 ? searchResults : suggested;
 
   return (
     <div className="w-full max-w-md mx-auto">
@@ -302,21 +368,36 @@ function StepFindReaders({ followedUsers, setFollowedUsers, onNext }) {
         </h2>
       </div>
 
-      <div className="flex gap-2 mb-4">
-        <Button size="sm" variant="secondary" onClick={followAll}>
-          Follow All
+      {/* Search */}
+      <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }} className="flex gap-2 mb-4">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search by name or handle..."
+          autoComplete="off"
+          data-1p-ignore="true"
+          data-lpignore="true"
+          data-form-type="other"
+          className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        />
+        <Button size="sm" type="submit" disabled={searching}>
+          {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
         </Button>
-        <Button size="sm" variant="ghost" onClick={() => { skipAll(); onNext(); }}>
+      </form>
+
+      <div className="flex gap-2 mb-4">
+        <Button size="sm" variant="ghost" onClick={() => { setFollowedUsers([]); onNext(); }}>
           Skip
         </Button>
       </div>
 
-      <ul className="space-y-3 mb-8">
-        {mockUsers.map((user) => {
+      <ul className="space-y-3 mb-8 max-h-[400px] overflow-y-auto">
+        {displayUsers.map((user) => {
           const isFollowed = followedUsers.includes(user.handle);
           return (
             <li
-              key={user.handle}
+              key={user.did || user.handle}
               onClick={() => toggleUser(user.handle)}
               className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
                 isFollowed
@@ -324,25 +405,22 @@ function StepFindReaders({ followedUsers, setFollowedUsers, onNext }) {
                   : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
               }`}
             >
-              <Avatar name={user.name} size="md" />
+              <Avatar name={user.displayName} src={user.avatar} size="md" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{user.name}</p>
+                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{user.displayName}</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 truncate">@{user.handle}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{user.bio}</p>
+                {user.description && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1">{user.description}</p>
+                )}
               </div>
-              <div className="flex flex-col items-end gap-1 shrink-0">
-                <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded-full">
-                  {user.mutuals} mutual connections
-                </span>
-                <div
-                  className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
-                    isFollowed
-                      ? 'bg-indigo-600 border-indigo-600 dark:bg-indigo-500 dark:border-indigo-500'
-                      : 'border-gray-300 dark:border-gray-600'
-                  }`}
-                >
-                  {isFollowed && <Check className="w-3 h-3 text-white" />}
-                </div>
+              <div
+                className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors shrink-0 ${
+                  isFollowed
+                    ? 'bg-indigo-600 border-indigo-600 dark:bg-indigo-500 dark:border-indigo-500'
+                    : 'border-gray-300 dark:border-gray-600'
+                }`}
+              >
+                {isFollowed && <Check className="w-3 h-3 text-white" />}
               </div>
             </li>
           );
@@ -350,7 +428,7 @@ function StepFindReaders({ followedUsers, setFollowedUsers, onNext }) {
       </ul>
 
       <Button size="lg" className="w-full" onClick={onNext}>
-        {followedUsers.length > 0 ? `Following ${followedUsers.length} readers` : 'Continue'}
+        {followedUsers.length > 0 ? `Selected ${followedUsers.length} readers` : 'Continue'}
         <ArrowRight className="w-4 h-4" />
       </Button>
     </div>
