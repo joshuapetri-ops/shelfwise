@@ -76,8 +76,23 @@ export async function searchBooks(query, { limit = 20, language } = {}) {
     console.warn('Open Library search failed, falling back to Claude:', err.message);
   }
 
-  // Fallback: ask Claude for book info when OL fails or has nothing
-  return searchWithClaude(query, limit);
+  // Fallback 1: ask Claude for book info from training knowledge
+  try {
+    const claudeResults = await searchWithClaude(query, limit);
+    if (claudeResults.length > 0) return claudeResults;
+  } catch (err) {
+    console.warn('Claude knowledge fallback failed:', err.message);
+  }
+
+  // Fallback 2: Claude with web search for very recent books
+  try {
+    const webResults = await searchWithClaudeWeb(query);
+    if (webResults.length > 0) return webResults;
+  } catch (err) {
+    console.warn('Claude web search fallback failed:', err.message);
+  }
+
+  return [];
 }
 
 async function searchOL(query, limit, langCode) {
@@ -145,6 +160,60 @@ async function searchWithClaude(query, limit) {
   } catch {
     return [];
   }
+}
+
+async function searchWithClaudeWeb(query) {
+  const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
+  if (!apiKey) return [];
+
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+      messages: [{
+        role: 'user',
+        content: `Find the book "${query}". Return a JSON array of matching books. Each object: title, author, year, isbn (ISBN-13 or null). No markdown fences, just the raw JSON array.`,
+      }],
+    }),
+  });
+
+  const data = await resp.json();
+  const textBlocks = (data.content || [])
+    .filter((b) => b.type === 'text')
+    .map((b) => b.text)
+    .join('');
+  const clean = textBlocks.replace(/```json|```/g, '').trim();
+
+  let parsed;
+  const arrMatch = clean.match(/\[[\s\S]*\]/);
+  const objMatch = clean.match(/\{[\s\S]*?\}/);
+  if (arrMatch) {
+    parsed = JSON.parse(arrMatch[0]);
+  } else if (objMatch) {
+    parsed = [JSON.parse(objMatch[0])];
+  } else {
+    return [];
+  }
+
+  if (!Array.isArray(parsed)) parsed = [parsed];
+
+  return parsed.map((b, i) => ({
+    key: '/works/web_' + encodeURIComponent(b.title || query).slice(0, 20) + '_' + i,
+    title: b.title || query,
+    author: b.author || 'Unknown',
+    year: b.year || null,
+    coverId: null,
+    isbn: b.isbn || null,
+    subjects: [],
+  }));
 }
 
 /**
