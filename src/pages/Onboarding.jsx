@@ -96,27 +96,10 @@ function StepWelcome({ onSignIn, onSkip }) {
 
 /* ─── Step 2 — Account Setup ────────────────────────────────────── */
 
-function StepAccount({ data, onChange, onNext }) {
-  const [librarySearch, setLibrarySearch] = useState('');
+function StepAccount({ data, onChange }) {
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState(null);
   const { signIn } = useAuth();
-
-  const filteredLibraries = librarySearch.trim()
-    ? mockLibraries.filter(
-        (lib) =>
-          lib.name.toLowerCase().includes(librarySearch.toLowerCase()) ||
-          lib.city.toLowerCase().includes(librarySearch.toLowerCase()),
-      )
-    : [];
-
-  const selectLibrary = (lib) => {
-    if (data.selectedLibrary?.code === lib.code) {
-      onChange({ selectedLibrary: null });
-    } else {
-      onChange({ selectedLibrary: lib });
-    }
-  };
 
   const handleSignIn = async () => {
     if (!data.handle?.trim()) {
@@ -127,7 +110,6 @@ function StepAccount({ data, onChange, onNext }) {
     setAuthError(null);
     try {
       await signIn(data.handle);
-      // Browser will redirect to PDS auth server — this line won't execute
     } catch (err) {
       setAuthError(err.message || 'Sign in failed. Please check your handle.');
       setAuthLoading(false);
@@ -145,7 +127,7 @@ function StepAccount({ data, onChange, onNext }) {
         Enter your handle to connect your identity. You&apos;ll be redirected to your PDS to authorize Shelfwise.
       </p>
 
-      <form className="space-y-4 mb-8" onSubmit={(e) => { e.preventDefault(); handleSignIn(); }} autoComplete="off">
+      <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSignIn(); }} autoComplete="off">
         <div>
           <label htmlFor="handle" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Handle</label>
           <input
@@ -190,9 +172,39 @@ function StepAccount({ data, onChange, onNext }) {
           </a>
         </p>
       </form>
+    </div>
+  );
+}
 
-      {/* Divider */}
-      <div className="border-t border-gray-200 dark:border-gray-700 my-6" />
+/* ─── Step 3 — Library & Language ──────────────────────────────────── */
+
+function StepLibrary({ data, onChange, onNext }) {
+  const [librarySearch, setLibrarySearch] = useState('');
+
+  const filteredLibraries = librarySearch.trim()
+    ? mockLibraries.filter(
+        (lib) =>
+          lib.name.toLowerCase().includes(librarySearch.toLowerCase()) ||
+          lib.city.toLowerCase().includes(librarySearch.toLowerCase()),
+      )
+    : [];
+
+  const selectLibrary = (lib) => {
+    if (data.selectedLibrary?.code === lib.code) {
+      onChange({ selectedLibrary: null });
+    } else {
+      onChange({ selectedLibrary: lib });
+    }
+  };
+
+  return (
+    <div className="w-full max-w-md mx-auto">
+      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+        Customize your experience
+      </h2>
+      <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+        Connect your local library for borrowing links and choose your preferred reading language.
+      </p>
 
       {/* Connect Your Library */}
       <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Connect Your Library</h3>
@@ -264,11 +276,8 @@ function StepAccount({ data, onChange, onNext }) {
       </select>
 
       <button
-        onClick={() => {
-          onChange({ selectedLibrary: null });
-          onNext();
-        }}
-        className="text-sm text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 underline mb-6 block"
+        onClick={onNext}
+        className="text-sm text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 underline mb-4 block"
       >
         Skip for now
       </button>
@@ -631,7 +640,9 @@ export default function Onboarding({ onComplete, importBooks: importBooksProp })
   const { updateSetting } = useSettings();
   const { isAuthenticated } = useAuth();
 
-  // If user just came back from OAuth, skip to step 3 (Find Readers)
+  // Steps: 1=Welcome, 2=AT Login, 3=Library/Language, 4=Find Readers, 5=Import, 6=Confirmation
+  // If user just came back from OAuth, skip to step 3 (Library/Language)
+  const TOTAL_STEPS = 6;
   const [step, setStep] = useState(isAuthenticated ? 3 : 1);
 
   // Collected data
@@ -644,7 +655,7 @@ export default function Onboarding({ onComplete, importBooks: importBooksProp })
 
   const updateAccount = (partial) => setAccountData((prev) => ({ ...prev, ...partial }));
 
-  const next = () => setStep((s) => Math.min(s + 1, 5));
+  const next = () => setStep((s) => Math.min(s + 1, TOTAL_STEPS));
   const back = () => setStep((s) => Math.max(s - 1, 1));
 
   const handleFinish = () => {
@@ -680,7 +691,7 @@ export default function Onboarding({ onComplete, importBooks: importBooksProp })
         ) : (
           <div />
         )}
-        <ProgressDots current={step} total={5} />
+        <ProgressDots current={step} total={TOTAL_STEPS} />
         <div className="w-14" />
       </div>
 
@@ -693,22 +704,23 @@ export default function Onboarding({ onComplete, importBooks: importBooksProp })
               onSkip={() => { setStep(3); }}
             />
           )}
-          {step === 2 && <StepAccount data={accountData} onChange={updateAccount} onNext={next} />}
-          {step === 3 && (
+          {step === 2 && <StepAccount data={accountData} onChange={updateAccount} />}
+          {step === 3 && <StepLibrary data={accountData} onChange={updateAccount} onNext={next} />}
+          {step === 4 && (
             <StepFindReaders
               followedUsers={followedUsers}
               setFollowedUsers={setFollowedUsers}
               onNext={next}
             />
           )}
-          {step === 4 && (
+          {step === 5 && (
             <StepImport
               importedBooks={importedBooks}
               setImportedBooks={setImportedBooks}
               onNext={next}
             />
           )}
-          {step === 5 && (
+          {step === 6 && (
             <StepConfirmation
               followedCount={followedUsers.length}
               bookCount={importedBooks.length}
