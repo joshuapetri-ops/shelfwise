@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import useBooks from '../hooks/useBooks'
 import useCriteria from '../hooks/useCriteria'
+import useChallenges from '../hooks/useChallenges'
 import BookCard from '../components/BookCard'
 import { BookOpen, ChevronDown } from 'lucide-react'
 import { computeComposite } from '../lib/compositeScore'
@@ -16,8 +17,14 @@ const SHELF_FILTERS = [
 export default function Shelves({ onBookClick, libraryCode }) {
   const { books } = useBooks()
   const { criteria } = useCriteria()
+  const { challenges, getChallengeProgress } = useChallenges()
   const [activeFilter, setActiveFilter] = useState('all')
   const [sortBy, setSortBy] = useState('dateAdded')
+
+  const activeChallenge = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0]
+    return challenges.find((c) => c.endDate >= today) ?? null
+  }, [challenges])
 
   const shelfCounts = useMemo(() => {
     const counts = { all: books.length, reading: 0, read: 0, wantToRead: 0, dnf: 0 }
@@ -87,6 +94,21 @@ export default function Shelves({ onBookClick, libraryCode }) {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
+      {/* Challenge banner */}
+      {activeChallenge && (
+        <div className="mb-4 rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950 px-4 py-2 flex items-center gap-3">
+          <span className="text-sm font-medium text-indigo-700 dark:text-indigo-300">
+            {activeChallenge.title}: {getChallengeProgress(activeChallenge, books)}/{activeChallenge.goal} books
+          </span>
+          <div className="flex-1 h-1.5 overflow-hidden rounded-full bg-indigo-200 dark:bg-indigo-800">
+            <div
+              className="h-full rounded-full bg-indigo-500 transition-all"
+              style={{ width: `${Math.min(100, Math.round((getChallengeProgress(activeChallenge, books) / activeChallenge.goal) * 100))}%` }}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Filter pills */}
       <div className="flex flex-wrap items-center gap-2 mb-6">
         {SHELF_FILTERS.map((f) => {

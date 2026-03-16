@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Modal from './ui/Modal';
 import BookCover from './ui/BookCover';
 import Stars from './ui/Stars';
@@ -7,6 +7,7 @@ import Pill from './ui/Pill';
 import Button from './ui/Button';
 import { computeComposite, formatComposite, compositeColor, compositeBg } from '../lib/compositeScore';
 import { buildAcquireLinks } from '../lib/purchaseLinks';
+import useChallenges from '../hooks/useChallenges';
 import { ExternalLink, Trash2, Plus } from 'lucide-react';
 
 const SHELVES = [
@@ -19,6 +20,15 @@ const SHELVES = [
 export default function BookDetail({ book, isOpen, onClose, onUpdate, onRemove, criteria, libraryCode }) {
   const [notes, setNotes] = useState(book.notes ?? '');
   const [newTag, setNewTag] = useState('');
+  const { challenges } = useChallenges();
+
+  const matchingChallenge = useMemo(() => {
+    if (book.shelf !== 'read' || !book.addedAt) return null;
+    const today = new Date().toISOString().split('T')[0];
+    return challenges.find(
+      (c) => c.endDate >= today && book.addedAt >= c.startDate && book.addedAt <= c.endDate,
+    ) ?? null;
+  }, [book.shelf, book.addedAt, challenges]);
 
   /* ── Shelf ── */
   function handleShelfChange(shelfKey) {
@@ -119,6 +129,13 @@ export default function BookDetail({ book, isOpen, onClose, onUpdate, onRemove, 
               );
             })}
           </div>
+          {matchingChallenge && (
+            <div className="mt-2">
+              <span className="inline-flex items-center rounded-full bg-indigo-100 dark:bg-indigo-900 px-3 py-1 text-xs font-medium text-indigo-700 dark:text-indigo-300">
+                Counts toward {matchingChallenge.title}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* ── Rating criteria ── */}

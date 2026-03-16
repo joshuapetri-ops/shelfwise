@@ -5,6 +5,7 @@ import Pill from '../components/ui/Pill'
 import Button from '../components/ui/Button'
 import { searchBooks } from '../api/openLibrary'
 import useBooks from '../hooks/useBooks'
+import useSettings from '../hooks/useSettings'
 import { Search as SearchIcon, Plus, Check } from 'lucide-react'
 
 const SHELF_OPTIONS = [
@@ -16,6 +17,7 @@ const SHELF_OPTIONS = [
 
 export default function Search({ onBookClick }) {
   const { books, addBook } = useBooks()
+  const { settings } = useSettings()
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -42,7 +44,7 @@ export default function Search({ onBookClick }) {
     setError(null)
     setSearched(true)
     try {
-      const data = await searchBooks(query)
+      const data = await searchBooks(query, { language: settings.language })
       setResults(data)
     } catch {
       setError('Failed to search books. Please try again.')
@@ -79,7 +81,7 @@ export default function Search({ onBookClick }) {
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="mb-8">
-        <SearchBar onSearch={handleSearch} onSelect={handleSelect} />
+        <SearchBar onSearch={handleSearch} onSelect={handleSelect} language={settings.language} />
       </div>
 
       {loading && (
@@ -159,9 +161,10 @@ export default function Search({ onBookClick }) {
                     <div className="relative">
                       <Button
                         size="sm"
-                        onClick={() =>
+                        onClick={(e) => {
+                          e.stopPropagation()
                           setOpenDropdown(openDropdown === id ? null : id)
-                        }
+                        }}
                       >
                         <Plus size={14} />
                         Add to Shelf
@@ -171,7 +174,7 @@ export default function Search({ onBookClick }) {
                           {SHELF_OPTIONS.map((opt) => (
                             <button
                               key={opt.value}
-                              onClick={() => handleAddWithShelf(book, opt.value)}
+                              onClick={(e) => { e.stopPropagation(); handleAddWithShelf(book, opt.value) }}
                               className="w-full text-left px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                             >
                               {opt.label}

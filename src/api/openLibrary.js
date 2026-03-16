@@ -1,24 +1,95 @@
 const BASE_URL = "https://openlibrary.org";
 const COVERS_URL = "https://covers.openlibrary.org";
 
+// Map 2-letter setting codes to 3-letter Open Library language codes
+const LANG_MAP = {
+  en: 'eng', es: 'spa', fr: 'fre', de: 'ger',
+  pt: 'por', it: 'ita', ja: 'jpn', zh: 'chi',
+  ko: 'kor', ru: 'rus', ar: 'ara', hi: 'hin',
+  nl: 'dut', sv: 'swe', pl: 'pol',
+};
+
+function toOlLang(lang) {
+  if (!lang) return 'eng';
+  // Already a 3-letter code
+  if (lang.length === 3) return lang;
+  return LANG_MAP[lang] || 'eng';
+}
+
+function deduplicateResults(results) {
+  const seenKeys = new Set();
+  const seenTitleAuthor = new Set();
+  return results.filter((book) => {
+    // Deduplicate by OL key
+    if (book.key && seenKeys.has(book.key)) return false;
+    if (book.key) seenKeys.add(book.key);
+    // Deduplicate by normalized title + author
+    const ta = `${book.title.toLowerCase().trim()}|${book.author.toLowerCase().trim()}`;
+    if (seenTitleAuthor.has(ta)) return false;
+    seenTitleAuthor.add(ta);
+    return true;
+  });
+}
+
+function mapDocs(docs) {
+  return (docs || []).map((doc) => ({
+    key: doc.key || null,
+    title: doc.title || "Unknown Title",
+    author: Array.isArray(doc.author_name)
+      ? doc.author_name[0]
+      : doc.author_name || "Unknown Author",
+    year: doc.first_publish_year ?? null,
+    coverId: doc.cover_i ?? null,
+    isbn: Array.isArray(doc.isbn) ? doc.isbn[0] : doc.isbn || null,
+    subjects: Array.isArray(doc.subject) ? doc.subject.slice(0, 10) : [],
+  }));
+}
+
 /**
  * Search for books using the Open Library Search API.
+ * Falls back to Claude API when Open Library returns no results.
  *
  * @param {string} query - Search query string.
  * @param {Object} [options]
  * @param {number} [options.limit=20] - Maximum number of results to return.
- * @returns {Promise<Array<{title: string, author: string, year: number|null, coverId: number|null, isbn: string|null, subjects: string[]}>>}
+ * @param {string} [options.language] - 2-letter or 3-letter language code.
+ * @returns {Promise<Array>}
  */
-export async function searchBooks(query, { limit = 20 } = {}) {
+export async function searchBooks(query, { limit = 20, language } = {}) {
   if (!query || !query.trim()) {
     return [];
   }
 
+  const olLang = toOlLang(language);
+
+  // Try with language filter first
+  let results = await searchOL(query, limit, olLang);
+
+  // If language-filtered search returned nothing and we used a filter, try without
+  if (results.length === 0 && olLang !== 'eng') {
+    results = await searchOL(query, limit, null);
+  }
+
+  // If still no results, try without any language filter
+  if (results.length === 0 && olLang === 'eng') {
+    results = await searchOL(query, limit, null);
+  }
+
+  if (results.length > 0) return results;
+
+  // Fallback: ask Claude for book info when OL has nothing
+  return searchWithClaude(query, limit);
+}
+
+async function searchOL(query, limit, langCode) {
+  const fullQuery = langCode
+    ? `${query.trim()} language:${langCode}`
+    : query.trim();
+
   const params = new URLSearchParams({
-    q: query.trim(),
+    q: fullQuery,
     limit: String(limit),
-    fields:
-      "title,author_name,first_publish_year,cover_i,isbn,subject",
+    fields: "key,title,author_name,first_publish_year,cover_i,isbn,subject",
   });
 
   const response = await fetch(`${BASE_URL}/search.json?${params}`);
@@ -30,27 +101,53 @@ export async function searchBooks(query, { limit = 20 } = {}) {
   }
 
   const data = await response.json();
+  return deduplicateResults(mapDocs(data.docs));
+}
 
-  const results = (data.docs || []).map((doc) => ({
-    key: doc.key || null,
-    title: doc.title || "Unknown Title",
-    author: Array.isArray(doc.author_name)
-      ? doc.author_name[0]
-      : doc.author_name || "Unknown Author",
-    year: doc.first_publish_year ?? null,
-    coverId: doc.cover_i ?? null,
-    isbn: Array.isArray(doc.isbn) ? doc.isbn[0] : doc.isbn || null,
-    subjects: Array.isArray(doc.subject) ? doc.subject.slice(0, 10) : [],
-  }));
+async function searchWithClaude(query, limit) {
+  try {
+    const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
+    if (!apiKey) return [];
 
-  // Deduplicate by normalized title + author, keeping the first (most relevant) entry
-  const seen = new Set();
-  return results.filter((book) => {
-    const key = `${book.title.toLowerCase().trim()}|${book.author.toLowerCase().trim()}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 800,
+        messages: [{
+          role: 'user',
+          content: `Find real published books matching: "${query}"\nReturn up to ${limit} actual books as a JSON array.\nEach object: title, author, year, isbn (ISBN-13 or null).\nOnly real books. No markdown fences, just the raw JSON array.`,
+        }],
+      }),
+    });
+
+    const aiData = await resp.json();
+    const text = aiData.content
+      ?.filter((b) => b.type === 'text')
+      .map((b) => b.text)
+      .join('') || '[]';
+    const clean = text.replace(/```json|```/g, '').trim();
+    const match = clean.match(/\[[\s\S]*\]/);
+    const parsed = JSON.parse(match ? match[0] : clean);
+
+    return parsed.map((b, i) => ({
+      key: '/works/ai_' + encodeURIComponent(b.title).slice(0, 20) + '_' + i,
+      title: b.title,
+      author: b.author || 'Unknown',
+      year: b.year || null,
+      coverId: null,
+      isbn: b.isbn || null,
+      subjects: [],
+    }));
+  } catch {
+    return [];
+  }
 }
 
 /**
@@ -58,15 +155,21 @@ export async function searchBooks(query, { limit = 20 } = {}) {
  *
  * @param {string} query - Partial search query.
  * @param {number} [limit=5] - Maximum number of suggestions.
+ * @param {string} [language] - 2-letter or 3-letter language code.
  * @returns {Promise<Array<{title: string, author: string, coverId: number|null}>>}
  */
-export async function autocomplete(query, limit = 5) {
+export async function autocomplete(query, limit = 5, language) {
   if (!query || !query.trim()) {
     return [];
   }
 
+  const olLang = toOlLang(language);
+  const fullQuery = olLang
+    ? `${query.trim()} language:${olLang}`
+    : query.trim();
+
   const params = new URLSearchParams({
-    q: query.trim(),
+    q: fullQuery,
     limit: String(limit),
     fields: "key,title,author_name,cover_i,first_publish_year,isbn",
   });

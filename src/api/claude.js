@@ -2,14 +2,17 @@ const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-sonnet-4-20250514";
 const MAX_TOKENS = 1024;
 
+const LANGUAGE_NAMES = { en: 'English', es: 'Spanish', fr: 'French', de: 'German', pt: 'Portuguese', it: 'Italian', ja: 'Japanese', zh: 'Chinese', ko: 'Korean', ru: 'Russian', ar: 'Arabic', hi: 'Hindi', nl: 'Dutch', sv: 'Swedish', pl: 'Polish' }
+
 /**
  * Get book recommendations from Claude based on a user's library and prompt.
  *
  * @param {string} prompt - The user's request or preference description.
  * @param {Array<{title: string, author: string}>} books - The user's current library.
+ * @param {string} [language='en'] - Preferred language code.
  * @returns {Promise<Array<{title: string, author: string, reason: string}>>} Recommended books.
  */
-export async function getRecommendations(prompt, books = []) {
+export async function getRecommendations(prompt, books = [], language = 'en') {
   const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
 
   if (!apiKey) {
@@ -31,12 +34,19 @@ export async function getRecommendations(prompt, books = []) {
     "Return between 1 and 10 recommendations. Do not include any text outside the JSON array.",
   ].join(" ");
 
-  const userMessage = [
+  let userMessageText = [
     "Here is my current library:",
     libraryDescription,
     "",
     `My request: ${prompt}`,
   ].join("\n");
+
+  if (language && language !== 'en') {
+    const languageName = LANGUAGE_NAMES[language] || language;
+    userMessageText += `\nPrefer books available in ${languageName}. If suggesting translated works, mention the translator.`;
+  }
+
+  const userMessage = userMessageText;
 
   const response = await fetch(ANTHROPIC_API_URL, {
     method: "POST",

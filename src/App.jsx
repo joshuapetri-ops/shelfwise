@@ -5,6 +5,7 @@ import BookDetail from './components/BookDetail'
 import Shelves from './pages/Shelves'
 import Search from './pages/Search'
 import Social from './pages/Social'
+import Challenges from './pages/Challenges'
 import ForYou from './pages/ForYou'
 import Settings from './pages/Settings'
 import Onboarding from './pages/Onboarding'
@@ -61,6 +62,7 @@ export default function App() {
           />
           <Route path="/search" element={<Search onBookClick={openDetail} />} />
           <Route path="/social" element={<Social />} />
+          <Route path="/challenges" element={<Challenges />} />
           <Route path="/for-you" element={<ForYou />} />
           <Route path="/settings" element={<Settings onLogout={() => setOnboarded(false)} />} />
           <Route path="*" element={<Navigate to="/" replace />} />

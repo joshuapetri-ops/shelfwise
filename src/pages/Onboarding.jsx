@@ -1,12 +1,30 @@
 import { useCallback, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, ArrowRight, ArrowLeft, Upload, Search, Check, Users } from 'lucide-react';
+import { BookOpen, ArrowRight, ArrowLeft, Upload, Search, Check, Users, Globe } from 'lucide-react';
 import useBooks from '../hooks/useBooks';
 import useSettings from '../hooks/useSettings';
 import { autoImport, enrichCovers } from '../lib/importers';
 import { mockUsers, mockLibraries } from '../lib/mockData';
 import Avatar from '../components/ui/Avatar';
 import Button from '../components/ui/Button';
+
+const LANGUAGES = [
+  { value: 'en', label: 'English' },
+  { value: 'es', label: 'Spanish' },
+  { value: 'fr', label: 'French' },
+  { value: 'de', label: 'German' },
+  { value: 'pt', label: 'Portuguese' },
+  { value: 'it', label: 'Italian' },
+  { value: 'ja', label: 'Japanese' },
+  { value: 'zh', label: 'Chinese' },
+  { value: 'ko', label: 'Korean' },
+  { value: 'ru', label: 'Russian' },
+  { value: 'ar', label: 'Arabic' },
+  { value: 'hi', label: 'Hindi' },
+  { value: 'nl', label: 'Dutch' },
+  { value: 'sv', label: 'Swedish' },
+  { value: 'pl', label: 'Polish' },
+];
 
 const PLATFORMS = [
   { id: 'goodreads', label: 'Goodreads' },
@@ -219,6 +237,26 @@ function StepAccount({ data, onChange, onNext, authMode }) {
           {data.selectedLibrary.name}
         </p>
       )}
+
+      {/* Divider */}
+      <div className="border-t border-gray-200 dark:border-gray-700 my-6" />
+
+      {/* Preferred Reading Language */}
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+        <Globe className="w-5 h-5 text-indigo-500" />
+        Preferred Reading Language
+      </h3>
+      <select
+        value={data.language || 'en'}
+        onChange={(e) => onChange({ language: e.target.value })}
+        className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-6"
+      >
+        {LANGUAGES.map((lang) => (
+          <option key={lang.value} value={lang.value}>
+            {lang.label}
+          </option>
+        ))}
+      </select>
 
       <button
         onClick={() => {
@@ -535,6 +573,8 @@ export default function Onboarding({ onComplete, importBooks: importBooksProp })
       updateSetting('libraryCode', accountData.selectedLibrary.code);
       updateSetting('libraryName', accountData.selectedLibrary.name);
     }
+
+    updateSetting('language', accountData.language || 'en');
 
     if (onComplete) onComplete();
     navigate('/');

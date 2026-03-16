@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { getRecommendations } from '../api/claude'
 import useBooks from '../hooks/useBooks'
+import useSettings from '../hooks/useSettings'
 import BookCover from '../components/ui/BookCover'
 import Button from '../components/ui/Button'
 import { Sparkles, Plus, Loader2 } from 'lucide-react'
 
 export default function ForYou() {
   const { books, addBook } = useBooks()
+  const { settings } = useSettings()
   const [recommendations, setRecommendations] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -21,7 +23,7 @@ export default function ForYou() {
     setAddedSet(new Set())
 
     try {
-      const recs = await getRecommendations(customPrompt || 'Recommend some books for me.', books)
+      const recs = await getRecommendations(customPrompt || 'Recommend some books for me.', books, settings.language)
       setRecommendations(recs)
     } catch {
       setError('Failed to get recommendations. Please try again.')

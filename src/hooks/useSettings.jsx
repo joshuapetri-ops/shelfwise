@@ -10,6 +10,7 @@ const DEFAULTS = {
   defaultAcquire: 'none',
   libraryCode: '',
   libraryName: '',
+  language: 'en',
 }
 
 function load() {

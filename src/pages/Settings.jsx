@@ -22,6 +22,7 @@ import {
   Check,
   Share2,
   LogOut,
+  Globe,
 } from 'lucide-react'
 
 const TABS = ['General', 'Criteria', 'Book Actions']
@@ -33,6 +34,24 @@ const ACQUIRE_SOURCES = [
   { value: 'powells', label: "Powell's" },
   { value: 'amazon', label: 'Amazon' },
   { value: 'kindle', label: 'Kindle' },
+]
+
+const LANGUAGES = [
+  { value: 'en', label: 'English' },
+  { value: 'es', label: 'Spanish' },
+  { value: 'fr', label: 'French' },
+  { value: 'de', label: 'German' },
+  { value: 'pt', label: 'Portuguese' },
+  { value: 'it', label: 'Italian' },
+  { value: 'ja', label: 'Japanese' },
+  { value: 'zh', label: 'Chinese' },
+  { value: 'ko', label: 'Korean' },
+  { value: 'ru', label: 'Russian' },
+  { value: 'ar', label: 'Arabic' },
+  { value: 'hi', label: 'Hindi' },
+  { value: 'nl', label: 'Dutch' },
+  { value: 'sv', label: 'Swedish' },
+  { value: 'pl', label: 'Polish' },
 ]
 
 const TAP_ACTIONS = [
@@ -265,6 +284,30 @@ export default function Settings({ onLogout }) {
                 </button>
               </div>
               <Moon size={20} className="text-indigo-400" />
+            </div>
+          </section>
+
+          {/* Preferred Reading Language */}
+          <section>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+              Preferred Reading Language
+            </h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+              Filter search results and recommendations by language
+            </p>
+            <div className="flex items-center gap-3">
+              <Globe size={20} className="text-indigo-500" />
+              <select
+                value={settings.language || 'en'}
+                onChange={(e) => updateSetting('language', e.target.value)}
+                className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+              >
+                {LANGUAGES.map((lang) => (
+                  <option key={lang.value} value={lang.value}>
+                    {lang.label}
+                  </option>
+                ))}
+              </select>
             </div>
           </section>
 

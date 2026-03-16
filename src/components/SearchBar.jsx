@@ -4,7 +4,9 @@ import useDebounce from '../hooks/useDebounce'
 import { autocomplete } from '../api/openLibrary'
 import BookCover from './ui/BookCover'
 
-export default function SearchBar({ onSearch, onSelect }) {
+const LANGUAGE_NAMES = { en: 'English', es: 'Spanish', fr: 'French', de: 'German', pt: 'Portuguese', it: 'Italian', ja: 'Japanese', zh: 'Chinese', ko: 'Korean', ru: 'Russian', ar: 'Arabic', hi: 'Hindi', nl: 'Dutch', sv: 'Swedish', pl: 'Polish' }
+
+export default function SearchBar({ onSearch, onSelect, language }) {
   const [query, setQuery] = useState('')
   const [suggestions, setSuggestions] = useState([])
   const [open, setOpen] = useState(false)
@@ -25,13 +27,13 @@ export default function SearchBar({ onSearch, onSelect }) {
       })
       return
     }
-    autocomplete(debouncedQuery).then((results) => {
+    autocomplete(debouncedQuery, 5, language).then((results) => {
       if (id === fetchIdRef.current) {
         setSuggestions(results ?? [])
         setOpen(true)
       }
     })
-  }, [debouncedQuery])
+  }, [debouncedQuery, language])
 
   function handleSubmit(e) {
     e?.preventDefault()
@@ -56,7 +58,7 @@ export default function SearchBar({ onSearch, onSelect }) {
             onChange={(e) => setQuery(e.target.value)}
             onFocus={() => suggestions.length > 0 && setOpen(true)}
             onBlur={() => setOpen(false)}
-            placeholder="Search books..."
+            placeholder={language && language !== 'en' ? `Search books (${LANGUAGE_NAMES[language] || language})...` : 'Search books...'}
             data-1p-ignore="true"
             data-lpignore="true"
             data-form-type="other"
