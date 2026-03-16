@@ -65,6 +65,7 @@ export default function Search({ onBookClick }) {
   }
 
   const handleAddWithShelf = (book, shelf) => {
+    console.log('handleAddWithShelf called:', book.title, shelf)
     addBook({ ...book, shelf })
     setOpenDropdown(null)
   }
@@ -163,6 +164,7 @@ export default function Search({ onBookClick }) {
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation()
+                          console.log('DROPDOWN TOGGLED for:', book.title)
                           setOpenDropdown(openDropdown === id ? null : id)
                         }}
                       >
@@ -177,6 +179,7 @@ export default function Search({ onBookClick }) {
                               onMouseDown={(e) => {
                                 e.preventDefault()
                                 e.stopPropagation()
+                                console.log('SHELF OPTION CLICKED:', book.title, opt.value)
                                 handleAddWithShelf(book, opt.value)
                               }}
                               className="w-full text-left px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
