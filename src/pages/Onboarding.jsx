@@ -325,18 +325,10 @@ function StepShareShelfwise({ onNext }) {
         </Button>
       </div>
 
-      <div className="flex flex-col gap-3">
-        <Button size="lg" className="w-full" onClick={onNext}>
-          Continue
-          <ArrowRight className="w-4 h-4" />
-        </Button>
-        <button
-          onClick={onNext}
-          className="text-sm text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 underline"
-        >
-          Skip
-        </button>
-      </div>
+      <Button size="lg" className="w-full" onClick={onNext}>
+        Continue
+        <ArrowRight className="w-4 h-4" />
+      </Button>
     </div>
   );
 }
@@ -488,18 +480,10 @@ function StepImport({ importedBooks, setImportedBooks, onNext }) {
         </div>
       )}
 
-      <div className="flex flex-col gap-3">
-        <Button size="lg" className="w-full" onClick={onNext}>
-          Continue
-          <ArrowRight className="w-4 h-4" />
-        </Button>
-        <button
-          onClick={onNext}
-          className="text-sm text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 underline"
-        >
-          Skip
-        </button>
-      </div>
+      <Button size="lg" className="w-full" onClick={onNext}>
+        Continue
+        <ArrowRight className="w-4 h-4" />
+      </Button>
     </div>
   );
 }
