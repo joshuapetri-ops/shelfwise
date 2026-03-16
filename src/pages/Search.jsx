@@ -2,18 +2,24 @@ import { useState } from 'react'
 import SearchBar from '../components/SearchBar'
 import BookCover from '../components/ui/BookCover'
 import Pill from '../components/ui/Pill'
-import Button from '../components/ui/Button'
 import { searchBooks } from '../api/openLibrary'
 import useBooks from '../hooks/useBooks'
 import useSettings from '../hooks/useSettings'
-import { Search as SearchIcon, Plus, Check } from 'lucide-react'
+import { Search as SearchIcon, Check } from 'lucide-react'
 
-const SHELF_OPTIONS = [
-  { value: 'wantToRead', label: 'Want to Read', color: 'indigo' },
-  { value: 'reading', label: 'Reading', color: 'amber' },
-  { value: 'read', label: 'Read', color: 'green' },
-  { value: 'dnf', label: "Couldn't Finish", color: 'red' },
-]
+const SHELF_LABELS = {
+  wantToRead: 'Want to Read',
+  reading: 'Reading',
+  read: 'Read',
+  dnf: "Couldn't Finish",
+}
+
+const SHELF_COLORS = {
+  wantToRead: 'indigo',
+  reading: 'amber',
+  read: 'green',
+  dnf: 'red',
+}
 
 export default function Search({ onBookClick }) {
   const { books, addBook } = useBooks()
@@ -22,7 +28,6 @@ export default function Search({ onBookClick }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [searched, setSearched] = useState(false)
-  const [openDropdown, setOpenDropdown] = useState(null)
 
   const findInLibrary = (book) =>
     books.find(
@@ -31,12 +36,6 @@ export default function Search({ onBookClick }) {
         (b.title?.toLowerCase() === book.title?.toLowerCase() &&
           b.author?.toLowerCase() === book.author?.toLowerCase()),
     )
-
-  const shelfLabel = (shelf) =>
-    SHELF_OPTIONS.find((o) => o.value === shelf)?.label ?? shelf
-
-  const shelfColor = (shelf) =>
-    SHELF_OPTIONS.find((o) => o.value === shelf)?.color ?? 'gray'
 
   const handleSearch = async (query) => {
     if (!query.trim()) return
@@ -55,19 +54,12 @@ export default function Search({ onBookClick }) {
   }
 
   const handleSelect = (book) => {
-    // Open the book detail modal directly for autocomplete selections
     const existing = findInLibrary(book)
     if (existing) {
       onBookClick?.(existing)
     } else {
       onBookClick?.(book)
     }
-  }
-
-  const handleAddWithShelf = (book, shelf) => {
-    console.log('handleAddWithShelf called:', book.title, shelf)
-    addBook({ ...book, shelf })
-    setOpenDropdown(null)
   }
 
   const handleCardClick = (book) => {
@@ -114,7 +106,7 @@ export default function Search({ onBookClick }) {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
           {results.map((book) => {
             const existing = findInLibrary(book)
-            const id = book.key || book.id || `${book.title}-${book.author}`
+            const id = book.key || `${book.title}-${book.author}`
 
             return (
               <div
@@ -157,42 +149,45 @@ export default function Search({ onBookClick }) {
                   </div>
                 </div>
 
-                {/* Shelf buttons — separate from the card click area */}
+                {/* Shelf buttons — direct, no dropdown */}
                 <div className="mt-3 w-full flex justify-center">
                   {existing ? (
-                    <Pill color={shelfColor(existing.shelf)}>
+                    <Pill color={SHELF_COLORS[existing.shelf] ?? 'gray'}>
                       <Check size={12} className="mr-0.5" />
-                      {shelfLabel(existing.shelf)}
+                      {SHELF_LABELS[existing.shelf] ?? existing.shelf}
                     </Pill>
                   ) : (
-                    <div className="relative">
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          console.log('DROPDOWN TOGGLED for:', book.title)
-                          setOpenDropdown(openDropdown === id ? null : id)
+                    <div className="flex flex-wrap gap-1.5 justify-center">
+                      <button
+                        onMouseDown={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          addBook({ ...book, shelf: 'read' })
                         }}
+                        className="px-2.5 py-1 text-xs font-semibold bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-md hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors"
                       >
-                        <Plus size={14} />
-                        Add to Shelf
-                      </Button>
-                      {openDropdown === id && (
-                        <div className="absolute z-20 mt-1 left-1/2 -translate-x-1/2 w-40 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg py-1">
-                          {SHELF_OPTIONS.map((opt) => (
-                            <button
-                              key={opt.value}
-                              onMouseDown={(e) => {
-                                e.preventDefault()
-                                console.log('SHELF OPTION CLICKED:', book.title, opt.value)
-                                handleAddWithShelf(book, opt.value)
-                              }}
-                              className="w-full text-left px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                            >
-                              {opt.label}
-                            </button>
-                          ))}
-                        </div>
-                      )}
+                        + Read
+                      </button>
+                      <button
+                        onMouseDown={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          addBook({ ...book, shelf: 'reading' })
+                        }}
+                        className="px-2.5 py-1 text-xs font-semibold bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-md hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+                      >
+                        + Reading
+                      </button>
+                      <button
+                        onMouseDown={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          addBook({ ...book, shelf: 'wantToRead' })
+                        }}
+                        className="px-2.5 py-1 text-xs font-semibold bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 rounded-md hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors"
+                      >
+                        + Want to Read
+                      </button>
                     </div>
                   )}
                 </div>

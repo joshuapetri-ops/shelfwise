@@ -15,7 +15,7 @@ const SHELF_FILTERS = [
 ]
 
 export default function Shelves({ onBookClick, libraryCode }) {
-  const { books, addBook } = useBooks()
+  const { books } = useBooks()
   const { criteria } = useCriteria()
   const { challenges, getChallengeProgress } = useChallenges()
   const [activeFilter, setActiveFilter] = useState('all')
@@ -71,29 +71,9 @@ export default function Shelves({ onBookClick, libraryCode }) {
     return sorted
   }, [books, activeFilter, sortBy, criteria])
 
-  const testAdd = () => {
-    console.log('TEST ADD CLICKED')
-    addBook({
-      key: '/works/test_dune_123',
-      title: 'Dune',
-      author: 'Frank Herbert',
-      coverId: 8231856,
-      isbn: '9780441013593',
-      year: 1965,
-      shelf: 'read',
-    })
-    console.log('TEST ADD FINISHED, books now:', books.length + 1)
-  }
-
   if (books.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-        <button
-          onClick={testAdd}
-          style={{padding: '16px 32px', fontSize: '18px', background: 'red', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', marginBottom: '16px'}}
-        >
-          TEST: Add Dune to shelf
-        </button>
         <BookOpen className="w-16 h-16 text-gray-300 dark:text-gray-600 mb-6" />
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">
           Your shelves are empty
@@ -171,13 +151,6 @@ export default function Shelves({ onBookClick, libraryCode }) {
           </div>
         </div>
       </div>
-
-      <button
-        onClick={testAdd}
-        style={{padding: '16px 32px', fontSize: '18px', background: 'red', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', marginBottom: '16px'}}
-      >
-        TEST: Add Dune to shelf
-      </button>
 
       {/* Book grid */}
       {filteredBooks.length === 0 ? (

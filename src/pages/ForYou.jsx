@@ -153,19 +153,40 @@ export default function ForYou() {
                   )}
                 </div>
 
-                <div className="shrink-0">
+                <div className="shrink-0 flex flex-col gap-1.5">
                   {addedSet.has(index) ? (
                     <span className="inline-flex items-center gap-1 text-sm font-medium text-green-600 dark:text-green-400">
                       Added!
                     </span>
                   ) : (
-                    <Button
-                      size="sm"
-                      onClick={() => handleAddBook(rec, index)}
-                    >
-                      <Plus size={14} />
-                      Add to shelf
-                    </Button>
+                    <>
+                      <button
+                        onMouseDown={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          handleAddBook(rec, index)
+                        }}
+                        className="px-3 py-1.5 text-xs font-semibold bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 rounded-md hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors"
+                      >
+                        + Want to Read
+                      </button>
+                      <button
+                        onMouseDown={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          addBook({
+                            key: `rec-${rec.title}-${rec.author}-${crypto.randomUUID()}`,
+                            title: rec.title,
+                            author: rec.author,
+                            shelf: 'reading',
+                          })
+                          setAddedSet((prev) => new Set([...prev, index]))
+                        }}
+                        className="px-3 py-1.5 text-xs font-semibold bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-md hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+                      >
+                        + Reading
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
