@@ -45,7 +45,7 @@ export default function BookDetail({ book, isOpen, onClose, onUpdate, onRemove, 
 
   /* ── Ratings ── */
   function handleRatingChange(criterionId, value) {
-    onUpdate(book.key, { ratings: { ...book.ratings, [criterionId]: value } });
+    onUpdate(book.key, { ratings: { ...(book.ratings || {}), [criterionId]: value } });
   }
 
   /* ── Notes ── */
@@ -55,7 +55,7 @@ export default function BookDetail({ book, isOpen, onClose, onUpdate, onRemove, 
 
   /* ── Tags ── */
   function handleRemoveTag(tag) {
-    onUpdate(book.key, { tags: book.tags.filter((t) => t !== tag) });
+    onUpdate(book.key, { tags: (book.tags || []).filter((t) => t !== tag) });
   }
 
   function handleAddTag() {

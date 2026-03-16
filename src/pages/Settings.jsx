@@ -102,9 +102,11 @@ export default function Settings({ onLogout }) {
   const [importCount, setImportCount] = useState(null)
   const fileInputRef = useRef(null)
 
-  // Social toggles (visual only)
-  const [shareActivity, setShareActivity] = useState(false)
-  const [showInDiscovery, setShowInDiscovery] = useState(false)
+  // Social toggles — persisted in settings
+  const shareActivity = settings.shareActivity ?? false
+  const showInDiscovery = settings.showInDiscovery ?? false
+  const setShareActivity = (v) => updateSetting('shareActivity', v)
+  const setShowInDiscovery = (v) => updateSetting('showInDiscovery', v)
 
   const maskedApiKey = import.meta.env.VITE_ANTHROPIC_API_KEY
     ? '****' + String(import.meta.env.VITE_ANTHROPIC_API_KEY).slice(-4)

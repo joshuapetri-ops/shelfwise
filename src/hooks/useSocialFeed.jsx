@@ -83,6 +83,7 @@ function toFeedEvent(user, bookRecord) {
     timestamp: bookRecord.createdAt
       ? formatTimeAgo(new Date(bookRecord.createdAt))
       : '',
+    sortTime: bookRecord.createdAt || '',
   }
 }
 
@@ -138,10 +139,10 @@ export default function useSocialFeed() {
         }
       }
 
-      // Sort by most recent first
+      // Sort by most recent first (using ISO date, not display string)
       allEvents.sort((a, b) => {
-        const ta = a.timestamp || ''
-        const tb = b.timestamp || ''
+        const ta = a.sortTime || ''
+        const tb = b.sortTime || ''
         return tb.localeCompare(ta)
       })
 

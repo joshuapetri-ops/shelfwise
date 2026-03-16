@@ -267,7 +267,12 @@ async function searchWithClaudeWeb(query) {
     .join('');
   const clean = text.replace(/```json|```/g, '').trim();
   const match = clean.match(/\[[\s\S]*\]/);
-  const results = JSON.parse(match ? match[0] : clean);
+  let results;
+  try {
+    results = JSON.parse(match ? match[0] : clean);
+  } catch {
+    return [];
+  }
 
   const arr = Array.isArray(results) ? results : [results];
 
