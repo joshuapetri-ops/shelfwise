@@ -77,6 +77,7 @@ export async function searchBooks(query, { limit = 20, language } = {}) {
   }
 
   // Fallback 1: ask Claude for book info from training knowledge
+  console.log('OL search: 0 results, trying Claude knowledge...');
   try {
     const claudeResults = await searchWithClaude(query, limit);
     if (claudeResults.length > 0) return claudeResults;
@@ -85,6 +86,7 @@ export async function searchBooks(query, { limit = 20, language } = {}) {
   }
 
   // Fallback 2: Claude with web search for very recent books
+  console.log('Claude knowledge: 0 results, trying web search...');
   try {
     const webResults = await searchWithClaudeWeb(query);
     if (webResults.length > 0) return webResults;
@@ -166,46 +168,59 @@ async function searchWithClaudeWeb(query) {
   const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
   if (!apiKey) return [];
 
-  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+  const headers = {
+    'Content-Type': 'application/json',
+    'x-api-key': apiKey,
+    'anthropic-version': '2023-06-01',
+    'anthropic-dangerous-direct-browser-access': 'true',
+  };
+
+  const userPrompt = `Search the web for the book "${query}". Tell me its exact title, author, publication year, and ISBN-13 number.`;
+
+  // Step 1: web search to gather data
+  const step1 = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-    },
+    headers,
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1000,
       tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-      messages: [{
-        role: 'user',
-        content: `Find the book "${query}". Return a JSON array of matching books. Each object: title, author, year, isbn (ISBN-13 or null). No markdown fences, just the raw JSON array.`,
-      }],
+      messages: [{ role: 'user', content: userPrompt }],
     }),
   });
 
-  const data = await resp.json();
-  const textBlocks = (data.content || [])
+  const step1Data = await step1.json();
+  console.log('Web search step 1 complete, formatting...');
+
+  // Step 2: pass the web search response back and ask for clean JSON
+  const step2 = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 500,
+      messages: [
+        { role: 'user', content: userPrompt },
+        { role: 'assistant', content: step1Data.content },
+        { role: 'user', content: 'Now return ONLY a JSON array containing one object with: title, author, year, isbn. No markdown fences, no explanation, just the raw JSON array.' },
+      ],
+    }),
+  });
+
+  const step2Data = await step2.json();
+  const text = (step2Data.content || [])
     .filter((b) => b.type === 'text')
     .map((b) => b.text)
     .join('');
-  const clean = textBlocks.replace(/```json|```/g, '').trim();
+  const clean = text.replace(/```json|```/g, '').trim();
+  const match = clean.match(/\[[\s\S]*\]/);
+  const results = JSON.parse(match ? match[0] : clean);
 
-  let parsed;
-  const arrMatch = clean.match(/\[[\s\S]*\]/);
-  const objMatch = clean.match(/\{[\s\S]*?\}/);
-  if (arrMatch) {
-    parsed = JSON.parse(arrMatch[0]);
-  } else if (objMatch) {
-    parsed = [JSON.parse(objMatch[0])];
-  } else {
-    return [];
-  }
+  console.log('Web search results:', results);
 
-  if (!Array.isArray(parsed)) parsed = [parsed];
+  const arr = Array.isArray(results) ? results : [results];
 
-  return parsed.map((b, i) => ({
+  return arr.map((b, i) => ({
     key: '/works/web_' + encodeURIComponent(b.title || query).slice(0, 20) + '_' + i,
     title: b.title || query,
     author: b.author || 'Unknown',
