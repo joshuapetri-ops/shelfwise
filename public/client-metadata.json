@@ -1,10 +1,10 @@
 {
-  "client_id": "https://shelfwise-app.vercel.app/client-metadata.json",
+  "client_id": "https://shelfwise-wine.vercel.app/client-metadata.json",
   "client_name": "Shelfwise",
-  "client_uri": "https://shelfwise-app.vercel.app",
-  "logo_uri": "https://shelfwise-app.vercel.app/favicon.svg",
+  "client_uri": "https://shelfwise-wine.vercel.app",
+  "logo_uri": "https://shelfwise-wine.vercel.app/favicon.svg",
   "redirect_uris": [
-    "https://shelfwise-app.vercel.app/oauth/callback",
+    "https://shelfwise-wine.vercel.app/oauth/callback",
     "http://localhost:5173/oauth/callback",
     "http://127.0.0.1:5173/oauth/callback"
   ],
