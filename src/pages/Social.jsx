@@ -6,8 +6,9 @@ import Pill from '../components/ui/Pill'
 import Button from '../components/ui/Button'
 import useBooks from '../hooks/useBooks'
 import useAuth from '../hooks/useAuth'
+import useFollow from '../hooks/useFollow'
 import useSocialFeed from '../hooks/useSocialFeed'
-import { Users, BookOpen, Loader2, Wifi, Search } from 'lucide-react'
+import { Users, BookOpen, Loader2, Wifi, Search, UserPlus, UserCheck } from 'lucide-react'
 
 const FILTERS = [
   { label: 'All', match: null },
@@ -35,9 +36,11 @@ export default function Social() {
   const { isAuthenticated } = useAuth()
   const { events: liveEvents, loading: feedLoading, isLive } = useSocialFeed()
   const [activeFilter, setActiveFilter] = useState('All')
+  const { follow, isLoading: isFollowLoading } = useFollow()
   const [userSearch, setUserSearch] = useState('')
   const [userResults, setUserResults] = useState([])
   const [searching, setSearching] = useState(false)
+  const [followedDids, setFollowedDids] = useState(new Set())
 
   const handleUserSearch = async () => {
     if (!userSearch.trim()) return
@@ -53,6 +56,7 @@ export default function Social() {
         displayName: a.displayName || a.handle,
         avatar: a.avatar || null,
         description: a.description || '',
+        isFollowing: !!a.viewer?.following,
       })))
     } catch {
       setUserResults([])
@@ -124,24 +128,53 @@ export default function Social() {
 
           {userResults.length > 0 && (
             <ul className="space-y-2 mb-4">
-              {userResults.map((user) => (
-                <li key={user.did}>
-                  <Link
-                    to={`/profile/${user.handle}`}
-                    className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors"
-                  >
-                    <Avatar name={user.displayName} src={user.avatar} size="sm" />
-                    <div className="min-w-0 flex-1">
+              {userResults.map((user) => {
+                const alreadyFollowing = user.isFollowing || followedDids.has(user.did)
+                return (
+                  <li key={user.did} className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+                    <Link to={`/profile/${user.handle}`}>
+                      <Avatar name={user.displayName} src={user.avatar} size="sm" />
+                    </Link>
+                    <Link to={`/profile/${user.handle}`} className="min-w-0 flex-1 hover:underline">
                       <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{user.displayName}</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 truncate">@{user.handle}</p>
                       {user.description && (
                         <p className="text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5">{user.description}</p>
                       )}
+                    </Link>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Link
+                        to={`/profile/${user.handle}`}
+                        className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline hidden sm:block"
+                      >
+                        View books
+                      </Link>
+                      {alreadyFollowing ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/30">
+                          <UserCheck size={14} />
+                          Following
+                        </span>
+                      ) : (
+                        <Button
+                          size="sm"
+                          onClick={async () => {
+                            const uri = await follow(user.did)
+                            if (uri) setFollowedDids((prev) => new Set([...prev, user.did]))
+                          }}
+                          disabled={isFollowLoading(user.did)}
+                        >
+                          {isFollowLoading(user.did) ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <UserPlus size={14} />
+                          )}
+                          Follow
+                        </Button>
+                      )}
                     </div>
-                    <span className="text-xs text-indigo-600 dark:text-indigo-400 shrink-0">View books</span>
-                  </Link>
-                </li>
-              ))}
+                  </li>
+                )
+              })}
             </ul>
           )}
         </div>

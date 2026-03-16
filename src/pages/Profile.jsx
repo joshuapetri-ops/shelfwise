@@ -6,7 +6,8 @@ import Pill from '../components/ui/Pill'
 import Button from '../components/ui/Button'
 import useBooks from '../hooks/useBooks'
 import useAuth from '../hooks/useAuth'
-import { ArrowLeft, BookOpen, Loader2, Share2 } from 'lucide-react'
+import useFollow from '../hooks/useFollow'
+import { ArrowLeft, BookOpen, Loader2, UserPlus, UserMinus } from 'lucide-react'
 
 const SHELF_LABELS = {
   wantToRead: 'Want to Read',
@@ -31,13 +32,15 @@ const SHELF_FILTERS = [
 
 export default function Profile() {
   const { handle } = useParams()
-  const { did: myDid } = useAuth()
+  const { did: myDid, isAuthenticated } = useAuth()
+  const { follow, unfollow, isLoading: isFollowLoading } = useFollow()
   const { addBook, books: myBooks } = useBooks()
   const [profile, setProfile] = useState(null)
   const [userBooks, setUserBooks] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [activeFilter, setActiveFilter] = useState('all')
+  const [followUri, setFollowUri] = useState(null) // non-null = following
 
   useEffect(() => {
     if (!handle) return
@@ -48,7 +51,7 @@ export default function Profile() {
       setError(null)
 
       try {
-        // Fetch profile
+        // Fetch profile (includes viewer.following if authenticated)
         const profileRes = await fetch(
           `https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(handle)}`
         )
@@ -65,6 +68,7 @@ export default function Profile() {
           followersCount: profileData.followersCount || 0,
           followsCount: profileData.followsCount || 0,
         })
+        setFollowUri(profileData.viewer?.following || null)
 
         // Fetch their shelfwise books
         try {
@@ -100,6 +104,24 @@ export default function Profile() {
     load()
     return () => { cancelled = true }
   }, [handle])
+
+  const handleFollow = async () => {
+    if (!profile) return
+    const uri = await follow(profile.did)
+    if (uri) {
+      setFollowUri(uri)
+      setProfile((prev) => prev ? { ...prev, followersCount: prev.followersCount + 1 } : prev)
+    }
+  }
+
+  const handleUnfollow = async () => {
+    if (!followUri) return
+    const ok = await unfollow(followUri)
+    if (ok) {
+      setFollowUri(null)
+      setProfile((prev) => prev ? { ...prev, followersCount: Math.max(0, prev.followersCount - 1) } : prev)
+    }
+  }
 
   const filteredBooks = activeFilter === 'all'
     ? userBooks
@@ -139,6 +161,8 @@ export default function Profile() {
     )
   }
 
+  const isFollowing = !!followUri
+
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
       {/* Back link */}
@@ -154,12 +178,49 @@ export default function Profile() {
       <div className="flex items-start gap-4 mb-8">
         <Avatar name={profile.displayName} src={profile.avatar} size="lg" />
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 truncate">
-            {profile.displayName}
-          </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-            @{profile.handle}
-          </p>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 truncate">
+                {profile.displayName}
+              </h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                @{profile.handle}
+              </p>
+            </div>
+            {/* Follow/Unfollow button */}
+            {isAuthenticated && !isMe && (
+              <div className="shrink-0">
+                {isFollowing ? (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleUnfollow}
+                    disabled={isFollowLoading(followUri)}
+                  >
+                    {isFollowLoading(followUri) ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <UserMinus className="w-4 h-4" />
+                    )}
+                    Following
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    onClick={handleFollow}
+                    disabled={isFollowLoading(profile.did)}
+                  >
+                    {isFollowLoading(profile.did) ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <UserPlus className="w-4 h-4" />
+                    )}
+                    Follow
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
           {profile.description && (
             <p className="text-sm text-gray-600 dark:text-gray-300 mt-2 line-clamp-3">
               {profile.description}
@@ -168,7 +229,7 @@ export default function Profile() {
           <div className="flex gap-4 mt-3 text-xs text-gray-500 dark:text-gray-400">
             <span><strong className="text-gray-700 dark:text-gray-300">{profile.followersCount}</strong> followers</span>
             <span><strong className="text-gray-700 dark:text-gray-300">{profile.followsCount}</strong> following</span>
-            <span><strong className="text-gray-700 dark:text-gray-300">{userBooks.length}</strong> books</span>
+            <span><strong className="text-gray-700 dark:text-gray-300">{userBooks.length}</strong> books on Shelfwise</span>
           </div>
         </div>
       </div>
@@ -199,6 +260,11 @@ export default function Profile() {
           <p className="text-gray-500 dark:text-gray-400">
             {isMe ? "You haven't added any books yet." : `@${profile.handle} hasn't added any books to Shelfwise yet.`}
           </p>
+          {!isMe && !isFollowing && isAuthenticated && (
+            <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">
+              Follow them to see their activity when they join!
+            </p>
+          )}
         </div>
       ) : (
         <div className="space-y-3">
@@ -236,9 +302,11 @@ export default function Profile() {
                     </button>
                   )}
                   {!isMe && inMyLibrary && (
-                    <Pill color={SHELF_COLORS[inMyLibrary.shelf] ?? 'gray'}>
-                      On your shelf: {SHELF_LABELS[inMyLibrary.shelf] ?? inMyLibrary.shelf}
-                    </Pill>
+                    <div className="mt-2">
+                      <Pill color={SHELF_COLORS[inMyLibrary.shelf] ?? 'gray'}>
+                        On your shelf: {SHELF_LABELS[inMyLibrary.shelf] ?? inMyLibrary.shelf}
+                      </Pill>
+                    </div>
                   )}
                 </div>
               </div>
