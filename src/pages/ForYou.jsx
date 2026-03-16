@@ -34,7 +34,7 @@ export default function ForYou() {
 
   const handleAddBook = (rec, index) => {
     addBook({
-      key: `rec-${rec.title}-${rec.author}`,
+      key: `rec-${rec.title}-${rec.author}-${crypto.randomUUID()}`,
       title: rec.title,
       author: rec.author,
       shelf: 'wantToRead',

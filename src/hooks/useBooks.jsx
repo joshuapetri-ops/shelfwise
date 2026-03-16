@@ -20,8 +20,12 @@ export function BooksProvider({ children }) {
   }, [books])
 
   const addBook = useCallback((book) => {
+    const safeKey = book.key || `/works/local_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+    if (!safeKey) return // guard: never allow a null key
+
     setBooks((prev) => {
-      const existingIndex = prev.findIndex((b) => b.key === book.key)
+      console.log('addBook called:', book.title, 'key:', safeKey, 'existing books:', prev.length)
+      const existingIndex = prev.findIndex((b) => b.key === safeKey)
       if (existingIndex !== -1) {
         // Book already exists — update the shelf if provided
         if (book.shelf) {
@@ -36,6 +40,7 @@ export function BooksProvider({ children }) {
         ...prev,
         {
           ...book,
+          key: safeKey,
           ratings: book.ratings || {},
           notes: book.notes || '',
           addedAt: book.addedAt || new Date().toISOString(),

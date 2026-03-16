@@ -48,7 +48,7 @@ export default function Social() {
 
   const handleAddBook = (book) => {
     addBook({
-      key: `social-${book.title}-${book.author}`,
+      key: `social-${book.title}-${book.author}-${crypto.randomUUID()}`,
       title: book.title,
       author: book.author,
       coverId: book.coverId,
