@@ -19,6 +19,9 @@ export function ToastProvider({ children }) {
   }, [])
 
   const removeToast = useCallback((id) => {
+    const timer = timersRef.current.get(id)
+    if (timer) clearTimeout(timer)
+    timersRef.current.delete(id)
     setToasts((prev) => prev.filter((t) => t.id !== id))
   }, [])
 

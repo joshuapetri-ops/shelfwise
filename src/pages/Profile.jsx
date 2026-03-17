@@ -121,7 +121,7 @@ export default function Profile() {
                 coverId: r.value.coverId || null,
                 shelf: r.value.shelf || '',
                 notes: r.value.notes || '',
-                ratings: r.value.ratings && String(r.value.ratings).trim().length > 1 ? (typeof r.value.ratings === 'string' ? JSON.parse(r.value.ratings) : r.value.ratings) : {},
+                ratings: (() => { try { return r.value.ratings && String(r.value.ratings).trim().length > 1 && typeof r.value.ratings === 'string' ? JSON.parse(r.value.ratings) : (r.value.ratings || {}) } catch { return {} } })(),
                 addedAt: r.value.createdAt,
               })))
             }

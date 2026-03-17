@@ -175,7 +175,7 @@ export default function Stats() {
     }
   }, [books])
 
-  const maxMonthly = Math.max(...stats.monthlyData.map((d) => d.count), 1)
+  const maxMonthly = stats.monthlyData.length > 0 ? Math.max(...stats.monthlyData.map((d) => d.count), 1) : 1
 
   if (books.length === 0) {
     return (

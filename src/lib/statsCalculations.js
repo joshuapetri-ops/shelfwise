@@ -66,7 +66,8 @@ export function classifyGenres(subjects) {
 
   const genres = new Set()
   for (const subject of subjects) {
-    const lower = subject.toLowerCase().trim()
+    if (!subject) continue
+    const lower = String(subject).toLowerCase().trim()
     if (GENRE_MAP[lower]) {
       genres.add(GENRE_MAP[lower])
     } else {

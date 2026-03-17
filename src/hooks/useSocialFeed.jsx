@@ -58,7 +58,9 @@ async function fetchUserBooks(did) {
  * Convert a book record into a feed event.
  */
 function toFeedEvent(user, bookRecord) {
-  const record = bookRecord.record
+  const record = bookRecord?.record
+  if (!record) return null
+
   const shelf = record.shelf
 
   let action = ''
@@ -70,9 +72,9 @@ function toFeedEvent(user, bookRecord) {
 
   return {
     user: {
-      name: user.displayName,
-      handle: user.handle,
-      avatar: user.avatar,
+      name: user.displayName || user.handle || 'Unknown Reader',
+      handle: user.handle || '',
+      avatar: user.avatar || null,
     },
     action,
     book: {
@@ -129,7 +131,7 @@ export default function useSocialFeed() {
         const results = await Promise.allSettled(
           batch.map(async (user) => {
             const books = await fetchUserBooks(user.did)
-            return books.map((b) => toFeedEvent(user, b))
+            return books.map((b) => toFeedEvent(user, b)).filter(Boolean)
           })
         )
         for (const result of results) {
