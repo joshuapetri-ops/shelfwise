@@ -134,9 +134,10 @@ export function BooksProvider({ children }) {
     sync()
   }, [auth])
 
+  // Returns 'added', 'updated', or 'exists' for toast feedback
   const addBook = useCallback((book) => {
     const safeKey = book.key || `/works/local_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
-    if (!safeKey) return
+    if (!safeKey) return 'exists'
 
     const bookWithKey = {
       ...book,
@@ -147,6 +148,15 @@ export function BooksProvider({ children }) {
       pageCount: book.pageCount || null,
       addedAt: book.addedAt || new Date().toISOString(),
     }
+
+    // Pre-check for duplicate to determine return status
+    const titleLower = (book.title || '').toLowerCase().trim()
+    const authorLower = (book.author || '').toLowerCase().trim()
+    const isDuplicate = books.some(
+      (b) => b.key === safeKey ||
+        (titleLower && (b.title || '').toLowerCase().trim() === titleLower &&
+         (b.author || '').toLowerCase().trim() === authorLower)
+    )
 
     setBooks((prev) => {
       // Check by key first
@@ -193,7 +203,9 @@ export function BooksProvider({ children }) {
     if (auth?.isAuthenticated && auth.agent && auth.did) {
       writeBook(auth.agent, auth.did, bookWithKey).catch(() => {})
     }
-  }, [auth])
+
+    return isDuplicate ? 'updated' : 'added'
+  }, [auth, books])
 
   const updateBook = useCallback((key, updates) => {
     // Log activity for streaks

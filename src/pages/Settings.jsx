@@ -196,8 +196,22 @@ export default function Settings({ onLogout }) {
       setImportStatus('Enriching genres...')
       const enriched = await enrichSubjects(parsed)
       importBooks(enriched)
-      setImportStatus('Import successful!')
-      setImportCount(enriched.length)
+      // Calculate how many were actually new vs skipped as duplicates
+      // (books state updates async, so estimate from the input)
+      const existingTitles = new Set(
+        books.map((b) => `${(b.title || '').toLowerCase().trim()}|${(b.author || '').toLowerCase().trim()}`)
+      )
+      const newCount = enriched.filter((b) => {
+        const ta = `${(b.title || '').toLowerCase().trim()}|${(b.author || '').toLowerCase().trim()}`
+        return !existingTitles.has(ta)
+      }).length
+      const skipped = enriched.length - newCount
+      setImportStatus(
+        skipped > 0
+          ? `Import complete! ${newCount} new books added, ${skipped} duplicates skipped.`
+          : 'Import successful!'
+      )
+      setImportCount(newCount)
     } catch {
       setImportStatus('Import failed. Please check the file format.')
       setImportCount(null)

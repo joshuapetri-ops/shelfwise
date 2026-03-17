@@ -5,6 +5,7 @@ import Pill from '../components/ui/Pill'
 import { searchBooks } from '../api/openLibrary'
 import useBooks from '../hooks/useBooks'
 import useSettings from '../hooks/useSettings'
+import useToast from '../components/Toast'
 import { Search as SearchIcon, Check, Share2 } from 'lucide-react'
 
 const SHELF_LABELS = {
@@ -21,9 +22,12 @@ const SHELF_COLORS = {
   dnf: 'red',
 }
 
+const SHELF_NAMES = { read: 'Read', reading: 'Reading', wantToRead: 'Want to Read', dnf: "Couldn't Finish" }
+
 export default function Search({ onBookClick }) {
   const { books, addBook } = useBooks()
   const { settings } = useSettings()
+  const { addToast } = useToast()
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(false)
   const [loadingMessage, setLoadingMessage] = useState(null)
@@ -183,24 +187,28 @@ export default function Search({ onBookClick }) {
                     </div>
                   ) : (
                     <div className="flex flex-wrap gap-1.5 justify-center">
-                      <button
-                        onClick={() => addBook({ ...book, shelf: 'read' })}
-                        className="px-3 py-2 text-xs font-semibold bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-md hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors min-h-[44px] flex items-center"
-                      >
-                        + Read
-                      </button>
-                      <button
-                        onClick={() => addBook({ ...book, shelf: 'reading' })}
-                        className="px-3 py-2 text-xs font-semibold bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-md hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors min-h-[44px] flex items-center"
-                      >
-                        + Reading
-                      </button>
-                      <button
-                        onClick={() => addBook({ ...book, shelf: 'wantToRead' })}
-                        className="px-3 py-2 text-xs font-semibold bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 rounded-md hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors min-h-[44px] flex items-center"
-                      >
-                        + Want to Read
-                      </button>
+                      {['read', 'reading', 'wantToRead'].map((shelf) => (
+                        <button
+                          key={shelf}
+                          onClick={() => {
+                            const result = addBook({ ...book, shelf })
+                            if (result === 'updated') {
+                              addToast(`"${book.title}" is already on your shelves — moved to ${SHELF_NAMES[shelf]}`, 'warning')
+                            } else {
+                              addToast(`Added "${book.title}" to ${SHELF_NAMES[shelf]}`, 'success')
+                            }
+                          }}
+                          className={`px-3 py-2 text-xs font-semibold rounded-md transition-colors min-h-[44px] flex items-center ${
+                            shelf === 'read'
+                              ? 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/50'
+                              : shelf === 'reading'
+                                ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50'
+                                : 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/50'
+                          }`}
+                        >
+                          + {SHELF_NAMES[shelf]}
+                        </button>
+                      ))}
                     </div>
                   )}
                 </div>

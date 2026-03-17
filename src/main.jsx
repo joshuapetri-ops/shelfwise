@@ -7,6 +7,7 @@ import { BooksProvider } from './hooks/useBooks'
 import { ChallengesProvider } from './hooks/useChallenges'
 import { CriteriaProvider } from './hooks/useCriteria'
 import { SettingsProvider } from './hooks/useSettings'
+import { ToastProvider } from './components/Toast'
 import './index.css'
 import App from './App.jsx'
 
@@ -31,7 +32,9 @@ createRoot(document.getElementById('root')).render(
             <CriteriaProvider>
               <BooksProvider>
                 <ChallengesProvider>
-                  <App />
+                  <ToastProvider>
+                    <App />
+                  </ToastProvider>
                 </ChallengesProvider>
               </BooksProvider>
             </CriteriaProvider>
