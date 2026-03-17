@@ -321,6 +321,64 @@ export async function enrichCovers(books, onProgress) {
 }
 
 /**
+ * Batch-enrich books with subjects (genres) via Open Library search.
+ * Only enriches books that don't already have subjects.
+ *
+ * @param {Array} books - Array of unified book objects.
+ * @param {Function} onProgress - Callback receiving (completed, total).
+ * @returns {Promise<Array>} Books with subjects backfilled where possible.
+ */
+export async function enrichSubjects(books, onProgress) {
+  const needsSubjects = books.filter(
+    (b) => (!b.subjects || b.subjects.length === 0) && b.title
+  );
+  const total = needsSubjects.length;
+  if (total === 0) return books;
+
+  let completed = 0;
+  const BATCH_SIZE = 5;
+
+  for (let i = 0; i < total; i += BATCH_SIZE) {
+    const batch = needsSubjects.slice(i, i + BATCH_SIZE);
+
+    await Promise.allSettled(
+      batch.map(async (book) => {
+        try {
+          // Search by ISBN first (most precise), then title+author
+          const query = book.isbn
+            ? `isbn:${book.isbn}`
+            : `${book.title} ${book.author || ''}`.trim();
+          const params = new URLSearchParams({
+            q: query,
+            limit: '1',
+            fields: 'subject,number_of_pages_median',
+          });
+          const res = await fetch(
+            `https://openlibrary.org/search.json?${params}`
+          );
+          if (!res.ok) return;
+          const data = await res.json();
+          const doc = data.docs?.[0];
+          if (doc) {
+            if (doc.subject && doc.subject.length > 0) {
+              book.subjects = doc.subject.slice(0, 10);
+            }
+            if (doc.number_of_pages_median && !book.pageCount) {
+              book.pageCount = doc.number_of_pages_median;
+            }
+          }
+        } catch { /* ignore individual failures */ }
+      })
+    );
+
+    completed += batch.length;
+    if (onProgress) onProgress(completed, total);
+  }
+
+  return books;
+}
+
+/**
  * Export an array of books to a Shelfwise CSV string.
  *
  * @param {Array} books - Array of unified book objects.

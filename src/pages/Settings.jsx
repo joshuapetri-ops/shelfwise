@@ -8,7 +8,7 @@ import Pill from '../components/ui/Pill'
 import Stars from '../components/ui/Stars'
 import Slider from '../components/ui/Slider'
 import { encodeCriteria, decodeCriteria } from '../lib/criteriaCodec'
-import { autoImport, exportShelfwiseCSV } from '../lib/importers'
+import { autoImport, exportShelfwiseCSV, enrichSubjects } from '../lib/importers'
 import { mockLibraries, criteriaTemplates } from '../lib/mockData'
 import {
   Settings as SettingsIcon,
@@ -193,9 +193,11 @@ export default function Settings({ onLogout }) {
     setImportCount(null)
     try {
       const parsed = await autoImport(file)
-      importBooks(parsed)
+      setImportStatus('Enriching genres...')
+      const enriched = await enrichSubjects(parsed)
+      importBooks(enriched)
       setImportStatus('Import successful!')
-      setImportCount(parsed.length)
+      setImportCount(enriched.length)
     } catch {
       setImportStatus('Import failed. Please check the file format.')
       setImportCount(null)

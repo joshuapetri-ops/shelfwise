@@ -4,7 +4,7 @@ import { BookOpen, ArrowRight, ArrowLeft, Upload, Search, Check, Globe, Loader2,
 import useBooks from '../hooks/useBooks';
 import useSettings from '../hooks/useSettings';
 import useAuth from '../hooks/useAuth';
-import { autoImport, enrichCovers } from '../lib/importers';
+import { autoImport, enrichCovers, enrichSubjects } from '../lib/importers';
 import { mockLibraries } from '../lib/mockData';
 import Button from '../components/ui/Button';
 
@@ -352,12 +352,18 @@ function StepImport({ importedBooks, setImportedBooks, onNext }) {
         setImportedBooks(books);
         setImporting(false);
 
-        // Start enriching covers in the background
+        // Start enriching covers and subjects in the background
         setEnriching(true);
-        const enriched = await enrichCovers(books, (completed, total) => {
+        const withCovers = await enrichCovers(books, (completed, total) => {
           setEnrichProgress({ completed, total });
         });
-        setImportedBooks(enriched);
+        setImportedBooks(withCovers);
+
+        // Enrich genres/subjects
+        const withSubjects = await enrichSubjects(withCovers, (completed, total) => {
+          setEnrichProgress({ completed, total });
+        });
+        setImportedBooks(withSubjects);
       } catch {
         setImporting(false);
       } finally {
