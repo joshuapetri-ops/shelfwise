@@ -222,7 +222,7 @@ export default function Stats() {
         <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 text-center">
           <Flame className="w-6 h-6 text-orange-500 mx-auto mb-2" />
           <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.streaks.currentStreak}</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Day Streak</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400" title="Consecutive days with reading activity">Day Streak</p>
         </div>
       </div>
 
@@ -233,7 +233,7 @@ export default function Stats() {
           <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
             {stats.readingPace ? `${stats.readingPace}d` : '—'}
           </p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Avg Days/Book</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400" title="Average days between starting and finishing a book">Avg Days/Book</p>
         </div>
         <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 text-center">
           <BookOpen className="w-5 h-5 text-gray-600 dark:text-gray-400 mx-auto mb-2" />
@@ -243,7 +243,7 @@ export default function Stats() {
         <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 text-center">
           <Zap className="w-5 h-5 text-amber-500 mx-auto mb-2" />
           <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{stats.streaks.longestStreak}</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Longest Streak</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400" title="Your longest streak of consecutive active days">Longest Streak</p>
         </div>
       </div>
 

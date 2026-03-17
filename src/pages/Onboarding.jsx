@@ -339,6 +339,7 @@ function StepImport({ importedBooks, setImportedBooks, onNext }) {
   const [platform, setPlatform] = useState(null);
   const [dragOver, setDragOver] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState(null);
   const [enriching, setEnriching] = useState(false);
   const [enrichProgress, setEnrichProgress] = useState({ completed: 0, total: 0 });
   const fileRef = useRef(null);
@@ -347,6 +348,7 @@ function StepImport({ importedBooks, setImportedBooks, onNext }) {
     async (file) => {
       if (!file) return;
       setImporting(true);
+      setImportError(null);
       try {
         const books = await autoImport(file);
         setImportedBooks(books);
@@ -366,6 +368,7 @@ function StepImport({ importedBooks, setImportedBooks, onNext }) {
         setImportedBooks(withSubjects);
       } catch {
         setImporting(false);
+        setImportError('Failed to import file. Please ensure it\'s a valid CSV from Goodreads, StoryGraph, or another supported service.');
       } finally {
         setEnriching(false);
       }
@@ -454,6 +457,13 @@ function StepImport({ importedBooks, setImportedBooks, onNext }) {
       {/* Importing indicator */}
       {importing && (
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 animate-pulse">Importing...</p>
+      )}
+
+      {/* Import error */}
+      {importError && !importing && (
+        <div className="mb-4 p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+          <p className="text-sm text-red-700 dark:text-red-300">{importError}</p>
+        </div>
       )}
 
       {/* Import result */}

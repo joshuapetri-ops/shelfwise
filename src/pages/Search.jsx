@@ -114,7 +114,7 @@ export default function Search({ onBookClick }) {
 
       {!loading && searched && results.length === 0 && !error && (
         <p className="text-gray-500 dark:text-gray-400 text-center py-12">
-          No results found. Try a different search term.
+          No results found. Try searching by author name, a simpler title, or ISBN.
         </p>
       )}
 

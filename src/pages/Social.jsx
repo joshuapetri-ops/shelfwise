@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import Avatar from '../components/ui/Avatar'
 import BookCover from '../components/ui/BookCover'
 import Pill from '../components/ui/Pill'
+import useToast from '../components/Toast'
 import Button from '../components/ui/Button'
 import useBooks from '../hooks/useBooks'
 import useAuth from '../hooks/useAuth'
@@ -35,6 +36,8 @@ export default function Social() {
   const { books, addBook } = useBooks()
   const { isAuthenticated, did, agent } = useAuth()
   const { events: liveEvents, loading: feedLoading, isLive } = useSocialFeed()
+  const toast = useToast()
+  const addToast = toast?.addToast || (() => {})
   const [activeFilter, setActiveFilter] = useState('All')
   const { follow, isLoading: isFollowLoading } = useFollow()
   const [userSearch, setUserSearch] = useState('')
@@ -197,6 +200,7 @@ export default function Social() {
                               if (uri) {
                                 setFollowedDids((prev) => new Set([...prev, user.did]))
                                 setMyFollows((prev) => [...prev, user])
+                                addToast(`Now following @${user.handle}`, 'success')
                               }
                             }}
                             disabled={isFollowLoading(user.did)}

@@ -1,7 +1,8 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Target, ChevronDown, ChevronUp, CheckCircle, Trash2, Copy, Plus } from 'lucide-react'
 import useBooks from '../hooks/useBooks'
 import useChallenges from '../hooks/useChallenges'
+import useToast from '../components/Toast'
 import BookCover from '../components/ui/BookCover'
 import Button from '../components/ui/Button'
 
@@ -25,7 +26,10 @@ function decodeChallenge(code) {
 export default function Challenges() {
   const { books } = useBooks()
   const { challenges, addChallenge, removeChallenge, getChallengeProgress } = useChallenges()
+  const toastCtx = useToast()
+  const addToast = useMemo(() => toastCtx?.addToast || (() => {}), [toastCtx])
 
+  const [celebratedIds] = useState(() => new Set(JSON.parse(localStorage.getItem('shelfwise-celebrated') || '[]')))
   const [showForm, setShowForm] = useState(false)
   const [title, setTitle] = useState('')
   const [goal, setGoal] = useState(10)
@@ -36,6 +40,18 @@ export default function Challenges() {
   const [copiedId, setCopiedId] = useState(null)
   const [importCode, setImportCode] = useState('')
   const [importError, setImportError] = useState('')
+
+  // Check for newly completed challenges and celebrate
+  useEffect(() => {
+    for (const c of challenges) {
+      const progress = getChallengeProgress(c, books)
+      if (progress >= c.goal && !celebratedIds.has(c.id)) {
+        celebratedIds.add(c.id)
+        localStorage.setItem('shelfwise-celebrated', JSON.stringify([...celebratedIds]))
+        addToast(`🎉 You completed "${c.title}"!`, 'success')
+      }
+    }
+  }, [challenges, books, getChallengeProgress, celebratedIds, addToast])
 
   function handleCreate() {
     if (!title.trim() || !endDate) return
@@ -50,6 +66,7 @@ export default function Challenges() {
     setStartDate(new Date().toISOString().split('T')[0])
     setEndDate('')
     setShowForm(false)
+    addToast(`Challenge "${title.trim()}" created!`, 'success')
   }
 
   function handleDelete(id) {
@@ -348,9 +365,12 @@ export default function Challenges() {
 
       {/* Import challenge */}
       <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4">
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
-          Join a challenge
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">
+          Create from template
         </h3>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+          Paste a friend&apos;s challenge code to create your own version of their challenge.
+        </p>
         <div className="flex gap-2">
           <input
             type="text"
@@ -364,7 +384,7 @@ export default function Challenges() {
             className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 dark:focus:border-indigo-500"
           />
           <Button onClick={handleImport} disabled={!importCode.trim()}>
-            Join Challenge
+            Create Challenge
           </Button>
         </div>
         {importError && (

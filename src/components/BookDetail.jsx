@@ -11,6 +11,7 @@ import useBooks from '../hooks/useBooks';
 import useAuth from '../hooks/useAuth';
 import useChallenges from '../hooks/useChallenges';
 import { deleteBook as pdsDeleteBook, writeBook as pdsWriteBook } from '../lib/pdsSync';
+import useToast from './Toast';
 import { ExternalLink, Trash2, Plus, Share2, Lock } from 'lucide-react';
 
 const SHELVES = [
@@ -25,6 +26,8 @@ export default function BookDetail({ book, isOpen, onClose, onUpdate, onRemove, 
   const [notes, setNotes] = useState(book.notes ?? '');
   const [newTag, setNewTag] = useState('');
   const { agent, did, isAuthenticated } = useAuth();
+  const toastCtx = useToast();
+  const addToast = toastCtx?.addToast || (() => {});
   const { books, addBook } = useBooks();
   const { challenges } = useChallenges();
 
@@ -68,6 +71,9 @@ export default function BookDetail({ book, isOpen, onClose, onUpdate, onRemove, 
       addBook({ ...book, ...updates });
       onUpdate(book.key, updates);
     }
+
+    const shelfNames = { reading: 'Reading', read: 'Read', wantToRead: 'Want to Read', dnf: "Couldn't Finish", private: '🔒 Private' }
+    addToast(`Moved to ${shelfNames[shelfKey] || shelfKey}`, 'success')
   }
 
   /* ── Dates ── */
@@ -170,6 +176,11 @@ export default function BookDetail({ book, isOpen, onClose, onUpdate, onRemove, 
               );
             })}
           </div>
+          {book.shelf === 'private' && (
+            <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">
+              Private books are only visible to you and are never shared on your profile or activity feed.
+            </p>
+          )}
           {matchingChallenge && (
             <div className="mt-2">
               <span className="inline-flex items-center rounded-full bg-indigo-100 dark:bg-indigo-900 px-3 py-1 text-xs font-medium text-indigo-700 dark:text-indigo-300">

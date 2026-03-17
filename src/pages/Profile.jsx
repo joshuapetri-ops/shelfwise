@@ -7,6 +7,7 @@ import Button from '../components/ui/Button'
 import useBooks from '../hooks/useBooks'
 import useAuth from '../hooks/useAuth'
 import useFollow from '../hooks/useFollow'
+import useToast from '../components/Toast'
 import { ArrowLeft, BookOpen, Loader2, UserPlus, UserMinus, UserCheck } from 'lucide-react'
 
 const SHELF_LABELS = {
@@ -35,6 +36,8 @@ export default function Profile() {
   const { did: myDid, isAuthenticated, agent } = useAuth()
   const { follow, unfollow, isLoading: isFollowLoading } = useFollow()
   const { addBook, books: myBooks } = useBooks()
+  const toast = useToast()
+  const addToast = toast?.addToast || (() => {})
   const [profile, setProfile] = useState(null)
   const [userBooks, setUserBooks] = useState([])
   const [isPrivateProfile, setIsPrivateProfile] = useState(false)
@@ -143,6 +146,7 @@ export default function Profile() {
     if (uri) {
       setFollowUri(uri)
       setProfile((prev) => prev ? { ...prev, followersCount: prev.followersCount + 1 } : prev)
+      addToast(`Now following @${profile.handle}`, 'success')
     }
   }
 
@@ -152,6 +156,7 @@ export default function Profile() {
     if (ok) {
       setFollowUri(null)
       setProfile((prev) => prev ? { ...prev, followersCount: Math.max(0, prev.followersCount - 1) } : prev)
+      addToast(`Unfollowed @${profile?.handle}`, 'info')
     }
   }
 
