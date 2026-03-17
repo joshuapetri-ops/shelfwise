@@ -9,7 +9,7 @@ import useBooks from '../hooks/useBooks'
 import useAuth from '../hooks/useAuth'
 import useFollow from '../hooks/useFollow'
 import useSocialFeed from '../hooks/useSocialFeed'
-import { Users, BookOpen, Loader2, Search, UserPlus, UserCheck, Rss, Compass } from 'lucide-react'
+import { Users, BookOpen, Loader2, Search, UserPlus, UserCheck, Rss, Compass, Share2, Send } from 'lucide-react'
 
 const FILTERS = [
   { label: 'All', match: null },
@@ -53,6 +53,8 @@ export default function Social() {
   const [followedDids, setFollowedDids] = useState(new Set())
   const [myFollows, setMyFollows] = useState([])
   const [followsLoading, setFollowsLoading] = useState(false)
+  const [recommendBook, setRecommendBook] = useState(null) // book being recommended
+  const [recommendHandle, setRecommendHandle] = useState('')
 
   // Load people I follow
   useEffect(() => {
@@ -136,6 +138,25 @@ export default function Social() {
       coverId: book.coverId,
       shelf: 'wantToRead',
     })
+  }
+
+  const handleShare = (book) => {
+    const text = `"${book.title}" by ${book.author} 📖\nhttps://www.shelfwise.xyz`
+    window.open(
+      'https://bsky.app/intent/compose?text=' + encodeURIComponent(text),
+      '_blank'
+    )
+  }
+
+  const handleRecommend = (book, handle) => {
+    const mention = handle.startsWith('@') ? handle : `@${handle}`
+    const text = `${mention} you should check out "${book.title}" by ${book.author} 📖\nhttps://www.shelfwise.xyz`
+    window.open(
+      'https://bsky.app/intent/compose?text=' + encodeURIComponent(text),
+      '_blank'
+    )
+    setRecommendBook(null)
+    setRecommendHandle('')
   }
 
   // Not authenticated
@@ -294,7 +315,8 @@ export default function Social() {
                         <p className="text-xs text-gray-500 dark:text-gray-400">
                           {item.book.author}
                         </p>
-                        <div className="mt-2">
+                        {/* Shelf status */}
+                        <div className="mt-2 flex items-center gap-2 flex-wrap">
                           {existing ? (
                             <Pill color={SHELF_COLORS[existing.shelf] ?? 'gray'}>
                               {SHELF_LABELS[existing.shelf] ?? existing.shelf}
@@ -308,6 +330,61 @@ export default function Social() {
                             </button>
                           )}
                         </div>
+
+                        {/* Actions */}
+                        <div className="mt-2 flex items-center gap-1">
+                          <button
+                            onClick={() => handleShare(item.book)}
+                            className="inline-flex items-center gap-1 px-2 py-1 text-xs text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded transition-colors"
+                            title="Share on Bluesky"
+                          >
+                            <Share2 size={13} />
+                            Share
+                          </button>
+                          <button
+                            onClick={() => setRecommendBook(recommendBook?.title === item.book.title ? null : item.book)}
+                            className="inline-flex items-center gap-1 px-2 py-1 text-xs text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded transition-colors"
+                            title="Recommend to a friend"
+                          >
+                            <Send size={13} />
+                            Recommend
+                          </button>
+                        </div>
+
+                        {/* Recommend inline form */}
+                        {recommendBook?.title === item.book.title && (
+                          <div className="mt-2 flex gap-2">
+                            <input
+                              type="text"
+                              value={recommendHandle}
+                              onChange={(e) => setRecommendHandle(e.target.value)}
+                              placeholder="@friend.bsky.social"
+                              autoComplete="off"
+                              data-1p-ignore="true"
+                              data-lpignore="true"
+                              data-form-type="other"
+                              className="flex-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2.5 py-1.5 text-xs text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:border-indigo-400 focus:outline-none"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && recommendHandle.trim()) {
+                                  handleRecommend(item.book, recommendHandle.trim())
+                                }
+                                if (e.key === 'Escape') {
+                                  setRecommendBook(null)
+                                  setRecommendHandle('')
+                                }
+                              }}
+                            />
+                            <Button
+                              size="sm"
+                              onClick={() => {
+                                if (recommendHandle.trim()) handleRecommend(item.book, recommendHandle.trim())
+                              }}
+                              disabled={!recommendHandle.trim()}
+                            >
+                              Send
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}

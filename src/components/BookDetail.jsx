@@ -12,7 +12,7 @@ import useAuth from '../hooks/useAuth';
 import useChallenges from '../hooks/useChallenges';
 import { deleteBook as pdsDeleteBook, writeBook as pdsWriteBook } from '../lib/pdsSync';
 import useToast from './Toast';
-import { ExternalLink, Trash2, Plus, Share2, Lock } from 'lucide-react';
+import { ExternalLink, Trash2, Plus, Share2, Lock, Send } from 'lucide-react';
 
 const SHELVES = [
   { key: 'reading', label: 'Reading' },
@@ -25,6 +25,8 @@ const SHELVES = [
 export default function BookDetail({ book, isOpen, onClose, onUpdate, onRemove, criteria, libraryCode }) {
   const [notes, setNotes] = useState(book.notes ?? '');
   const [newTag, setNewTag] = useState('');
+  const [showRecommend, setShowRecommend] = useState(false);
+  const [recommendHandle, setRecommendHandle] = useState('');
   const { agent, did, isAuthenticated } = useAuth();
   const toastCtx = useToast();
   const addToast = toastCtx?.addToast || (() => {});
@@ -417,6 +419,14 @@ export default function BookDetail({ book, isOpen, onClose, onUpdate, onRemove, 
             Share on Bluesky
           </Button>
           <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setShowRecommend(!showRecommend)}
+          >
+            <Send size={14} />
+            Recommend
+          </Button>
+          <Button
             onClick={handleRemove}
             className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800"
           >
@@ -424,6 +434,57 @@ export default function BookDetail({ book, isOpen, onClose, onUpdate, onRemove, 
             Remove
           </Button>
         </div>
+
+        {/* Recommend form */}
+        {showRecommend && (
+          <div className="mt-3 flex gap-2">
+            <input
+              type="text"
+              value={recommendHandle}
+              onChange={(e) => setRecommendHandle(e.target.value)}
+              placeholder="@friend.bsky.social"
+              autoComplete="off"
+              data-1p-ignore="true"
+              data-lpignore="true"
+              data-form-type="other"
+              className="flex-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:border-indigo-400 focus:outline-none"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && recommendHandle.trim()) {
+                  const mention = recommendHandle.trim().startsWith('@') ? recommendHandle.trim() : `@${recommendHandle.trim()}`
+                  window.open(
+                    'https://bsky.app/intent/compose?text=' + encodeURIComponent(
+                      `${mention} you should check out "${book.title}" by ${book.author} 📖\nhttps://www.shelfwise.xyz`
+                    ), '_blank'
+                  )
+                  setShowRecommend(false)
+                  setRecommendHandle('')
+                }
+                if (e.key === 'Escape') {
+                  setShowRecommend(false)
+                  setRecommendHandle('')
+                }
+              }}
+            />
+            <Button
+              size="sm"
+              onClick={() => {
+                if (!recommendHandle.trim()) return
+                const mention = recommendHandle.trim().startsWith('@') ? recommendHandle.trim() : `@${recommendHandle.trim()}`
+                window.open(
+                  'https://bsky.app/intent/compose?text=' + encodeURIComponent(
+                    `${mention} you should check out "${book.title}" by ${book.author} 📖\nhttps://www.shelfwise.xyz`
+                  ), '_blank'
+                )
+                setShowRecommend(false)
+                setRecommendHandle('')
+              }}
+              disabled={!recommendHandle.trim()}
+            >
+              <Send size={14} />
+              Send
+            </Button>
+          </div>
+        )}
       </div>
     </Modal>
   );
