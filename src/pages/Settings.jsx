@@ -357,6 +357,41 @@ export default function Settings({ onLogout }) {
             </div>
           </section>
 
+          {/* Privacy */}
+          <section>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Privacy</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+              Control who can see your books when they visit your profile
+            </p>
+            <div className="space-y-2">
+              {[
+                { value: 'public', label: 'Public', desc: 'Anyone can see your shelves and ratings' },
+                { value: 'private', label: 'Private', desc: 'Only you can see your books — your profile appears empty to others' },
+              ].map((opt) => (
+                <label
+                  key={opt.value}
+                  className="flex items-start gap-3 cursor-pointer p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700"
+                >
+                  <input
+                    type="radio"
+                    name="profileVisibility"
+                    value={opt.value}
+                    checked={(settings.profileVisibility || 'public') === opt.value}
+                    onChange={() => updateSetting('profileVisibility', opt.value)}
+                    className="accent-indigo-600 mt-0.5"
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{opt.label}</span>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{opt.desc}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
+              Books on the 🔒 Private shelf are never synced to AT Protocol and are only stored on this device.
+            </p>
+          </section>
+
           {/* Social Toggles */}
           <section>
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Social</h2>

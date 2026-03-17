@@ -12,6 +12,7 @@ const shelfStyles = {
   read: 'green',
   wantToRead: 'amber',
   dnf: 'red',
+  private: 'gray',
 }
 
 const shelfLabels = {
@@ -19,6 +20,7 @@ const shelfLabels = {
   read: 'Read',
   wantToRead: 'Want to Read',
   dnf: "Couldn't Finish",
+  private: '🔒 Private',
 }
 
 export default function BookCard({ book, criteria, libraryCode, onClick }) {

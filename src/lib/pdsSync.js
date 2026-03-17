@@ -64,6 +64,9 @@ function recordToBook(record, uri) {
  * Uses putRecord (upsert) with deterministic rkey.
  */
 export async function writeBook(agent, did, book) {
+  // Private books are localStorage-only — never write to PDS
+  if (book.shelf === 'private') return
+
   const rkey = bookRkey(book.key)
   const record = bookToRecord(book)
 
@@ -200,6 +203,7 @@ export async function writeSettings(agent, did, settings) {
     theme: settings.theme || 'light',
     defaultAction: settings.defaultAction || 'details',
     defaultAcquire: settings.defaultAcquire || 'none',
+    profileVisibility: settings.profileVisibility || 'public',
   }
 
   try {
@@ -230,6 +234,7 @@ export async function fetchSettings(agent, did) {
       theme: v.theme || 'light',
       defaultAction: v.defaultAction || 'details',
       defaultAcquire: v.defaultAcquire || 'none',
+      profileVisibility: v.profileVisibility || 'public',
     }
   } catch {
     return null

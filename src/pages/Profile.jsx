@@ -37,6 +37,7 @@ export default function Profile() {
   const { addBook, books: myBooks } = useBooks()
   const [profile, setProfile] = useState(null)
   const [userBooks, setUserBooks] = useState([])
+  const [isPrivateProfile, setIsPrivateProfile] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [activeFilter, setActiveFilter] = useState('all')
@@ -85,8 +86,24 @@ export default function Profile() {
         })
         setFollowUri(profileData.viewer?.following || null)
 
-        // Fetch their shelfwise books
+        // Check their privacy preferences
+        let isPrivateProfile = false
         try {
+          const prefsRes = await fetch(
+            `https://bsky.social/xrpc/com.atproto.repo.getRecord?repo=${encodeURIComponent(profileData.did)}&collection=app.shelfwise.criteriaTemplate&rkey=preferences`
+          )
+          if (prefsRes.ok) {
+            const prefsData = await prefsRes.json()
+            isPrivateProfile = prefsData.value?.profileVisibility === 'private'
+          }
+        } catch { /* no preferences = public */ }
+
+        if (!cancelled) setIsPrivateProfile(isPrivateProfile)
+
+        // Fetch their shelfwise books (skip if private and not viewing own profile)
+        if (isPrivateProfile && profileData.did !== myDid) {
+          if (!cancelled) setUserBooks([])
+        } else try {
           const booksRes = await fetch(
             `https://bsky.social/xrpc/com.atproto.repo.listRecords?repo=${encodeURIComponent(profileData.did)}&collection=app.shelfwise.book&limit=100`
           )
@@ -118,7 +135,7 @@ export default function Profile() {
 
     load()
     return () => { cancelled = true }
-  }, [handle, agent])
+  }, [handle, agent, myDid])
 
   const handleFollow = async () => {
     if (!profile) return
@@ -276,7 +293,12 @@ export default function Profile() {
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <BookOpen className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-4" />
           <p className="text-gray-500 dark:text-gray-400">
-            {isMe ? "You haven't added any books yet." : `@${profile.handle} hasn't added any books to Shelfwise yet.`}
+            {isMe
+              ? "You haven't added any books yet."
+              : isPrivateProfile
+                ? `@${profile.handle}'s reading list is private.`
+                : `@${profile.handle} hasn't added any books to Shelfwise yet.`
+            }
           </p>
           {!isMe && !isFollowing && isAuthenticated && (
             <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">

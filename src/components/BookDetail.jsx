@@ -8,19 +8,23 @@ import Button from './ui/Button';
 import { computeComposite, formatComposite, compositeColor, compositeBg } from '../lib/compositeScore';
 import { buildAcquireLinks } from '../lib/purchaseLinks';
 import useBooks from '../hooks/useBooks';
+import useAuth from '../hooks/useAuth';
 import useChallenges from '../hooks/useChallenges';
-import { ExternalLink, Trash2, Plus, Share2 } from 'lucide-react';
+import { deleteBook as pdsDeleteBook } from '../lib/pdsSync';
+import { ExternalLink, Trash2, Plus, Share2, Lock } from 'lucide-react';
 
 const SHELVES = [
   { key: 'reading', label: 'Reading' },
   { key: 'wantToRead', label: 'Want to Read' },
   { key: 'read', label: 'Read' },
   { key: 'dnf', label: "Couldn't Finish" },
+  { key: 'private', label: '🔒 Private' },
 ];
 
 export default function BookDetail({ book, isOpen, onClose, onUpdate, onRemove, criteria, libraryCode }) {
   const [notes, setNotes] = useState(book.notes ?? '');
   const [newTag, setNewTag] = useState('');
+  const { agent, did, isAuthenticated } = useAuth();
   const { books, addBook } = useBooks();
   const { challenges } = useChallenges();
 
@@ -46,6 +50,11 @@ export default function BookDetail({ book, isOpen, onClose, onUpdate, onRemove, 
     if (shelfKey === 'read' && !book.finishedAt) {
       updates.finishedAt = today
       if (!book.startedAt) updates.startedAt = today
+    }
+
+    // Moving to private: delete from PDS (book stays in localStorage only)
+    if (shelfKey === 'private' && isAuthenticated && agent && did) {
+      pdsDeleteBook(agent, did, book).catch(() => {})
     }
 
     if (bookExistsInLibrary) {

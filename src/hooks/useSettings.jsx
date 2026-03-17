@@ -12,6 +12,7 @@ const DEFAULTS = {
   defaultAcquire: 'none',
   libraryCode: '',
   libraryName: '',
+  profileVisibility: 'public', // 'public', 'private'
   language: 'en',
 }
 

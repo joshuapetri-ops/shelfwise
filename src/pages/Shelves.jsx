@@ -12,6 +12,7 @@ const SHELF_FILTERS = [
   { key: 'read', label: 'Read' },
   { key: 'wantToRead', label: 'Want to Read' },
   { key: 'dnf', label: "Couldn't Finish" },
+  { key: 'private', label: '🔒 Private' },
 ]
 
 export default function Shelves({ onBookClick, libraryCode }) {
@@ -27,7 +28,7 @@ export default function Shelves({ onBookClick, libraryCode }) {
   }, [challenges])
 
   const shelfCounts = useMemo(() => {
-    const counts = { all: books.length, reading: 0, read: 0, wantToRead: 0, dnf: 0 }
+    const counts = { all: books.length, reading: 0, read: 0, wantToRead: 0, dnf: 0, private: 0 }
     for (const b of books) {
       if (counts[b.shelf] !== undefined) counts[b.shelf]++
     }
