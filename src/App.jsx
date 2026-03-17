@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, Link } from 'react-router-dom'
 import NavBar from './components/NavBar'
 import BookDetail from './components/BookDetail'
 import Shelves from './pages/Shelves'
@@ -79,9 +79,9 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 pb-20" data-1p-ignore>
       <header className="sticky top-0 z-40 bg-white/80 dark:bg-gray-950/80 backdrop-blur border-b border-gray-200 dark:border-gray-800 px-4 py-3">
-        <h1 className="text-xl font-bold tracking-tight">
+        <Link to="/" className="text-xl font-bold tracking-tight hover:opacity-80 transition-opacity">
           <span className="text-indigo-600 dark:text-indigo-400">Shelf</span>wise
-        </h1>
+        </Link>
       </header>
 
       <main className="max-w-5xl mx-auto">
