@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import Avatar from '../components/ui/Avatar'
 import BookCover from '../components/ui/BookCover'
@@ -33,7 +33,7 @@ const SHELF_COLORS = {
 
 export default function Social() {
   const { books, addBook } = useBooks()
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, did, agent } = useAuth()
   const { events: liveEvents, loading: feedLoading, isLive } = useSocialFeed()
   const [activeFilter, setActiveFilter] = useState('All')
   const { follow, isLoading: isFollowLoading } = useFollow()
@@ -41,29 +41,66 @@ export default function Social() {
   const [userResults, setUserResults] = useState([])
   const [searching, setSearching] = useState(false)
   const [followedDids, setFollowedDids] = useState(new Set())
+  const [myFollows, setMyFollows] = useState([])
+  const [followsLoading, setFollowsLoading] = useState(false)
 
-  const handleUserSearch = async () => {
-    if (!userSearch.trim()) return
-    setSearching(true)
-    try {
-      const res = await fetch(
-        `https://public.api.bsky.app/xrpc/app.bsky.actor.searchActors?q=${encodeURIComponent(userSearch)}&limit=8`
-      )
-      const data = await res.json()
-      setUserResults((data.actors || []).map((a) => ({
-        did: a.did,
-        handle: a.handle,
-        displayName: a.displayName || a.handle,
-        avatar: a.avatar || null,
-        description: a.description || '',
-        isFollowing: !!a.viewer?.following,
-      })))
-    } catch {
-      setUserResults([])
-    } finally {
-      setSearching(false)
+  // Load people I follow
+  useEffect(() => {
+    if (!isAuthenticated || !did) return
+    let cancelled = false
+
+    async function loadFollows() {
+      setFollowsLoading(true)
+      try {
+        const data = agent
+          ? (await agent.app.bsky.graph.getFollows({ actor: did, limit: 50 })).data
+          : await (await fetch(`https://public.api.bsky.app/xrpc/app.bsky.graph.getFollows?actor=${encodeURIComponent(did)}&limit=50`)).json()
+
+        if (!cancelled) {
+          setMyFollows((data.follows || []).map((f) => ({
+            did: f.did,
+            handle: f.handle,
+            displayName: f.displayName || f.handle,
+            avatar: f.avatar || null,
+            description: f.description || '',
+          })))
+        }
+      } catch { /* ignore */ }
+      finally { if (!cancelled) setFollowsLoading(false) }
     }
-  }
+    loadFollows()
+    return () => { cancelled = true }
+  }, [isAuthenticated, did, agent])
+
+  // Autocomplete search — debounced
+  useEffect(() => {
+    if (!userSearch.trim() || userSearch.trim().length < 2) {
+      setUserResults([])
+      return
+    }
+    const timer = setTimeout(async () => {
+      setSearching(true)
+      try {
+        const res = await fetch(
+          `https://public.api.bsky.app/xrpc/app.bsky.actor.searchActors?q=${encodeURIComponent(userSearch)}&limit=8`
+        )
+        const data = await res.json()
+        setUserResults((data.actors || []).map((a) => ({
+          did: a.did,
+          handle: a.handle,
+          displayName: a.displayName || a.handle,
+          avatar: a.avatar || null,
+          description: a.description || '',
+          isFollowing: !!a.viewer?.following,
+        })))
+      } catch {
+        setUserResults([])
+      } finally {
+        setSearching(false)
+      }
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [userSearch])
 
   // Use live feed when authenticated
   const activity = isLive ? liveEvents : []
@@ -106,79 +143,108 @@ export default function Social() {
         {feedLoading && <Loader2 size={16} className="animate-spin text-gray-400" />}
       </div>
 
-      {/* User search */}
+      {/* Find & Follow */}
       {isAuthenticated && (
         <div className="mb-6">
-          <form onSubmit={(e) => { e.preventDefault(); handleUserSearch(); }} className="flex gap-2 mb-3">
-            <input
-              type="text"
-              value={userSearch}
-              onChange={(e) => setUserSearch(e.target.value)}
-              placeholder="Find readers by name or handle..."
-              autoComplete="off"
-              data-1p-ignore="true"
-              data-lpignore="true"
-              data-form-type="other"
-              className="flex-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:border-indigo-400 focus:outline-none"
-            />
-            <Button size="sm" type="submit" disabled={searching}>
-              {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-            </Button>
-          </form>
+          {/* Search with autocomplete */}
+          <div className="relative mb-4">
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  value={userSearch}
+                  onChange={(e) => setUserSearch(e.target.value)}
+                  placeholder="Find readers by name or handle..."
+                  autoComplete="off"
+                  data-1p-ignore="true"
+                  data-lpignore="true"
+                  data-form-type="other"
+                  className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 pl-9 pr-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:border-indigo-400 focus:outline-none"
+                />
+                {searching && <Loader2 size={14} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-gray-400" />}
+              </div>
+            </div>
 
-          {userResults.length > 0 && (
-            <ul className="space-y-2 mb-4">
-              {userResults.map((user) => {
-                const alreadyFollowing = user.isFollowing || followedDids.has(user.did)
-                return (
-                  <li key={user.did} className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
-                    <Link to={`/profile/${user.handle}`}>
-                      <Avatar name={user.displayName} src={user.avatar} size="sm" />
-                    </Link>
-                    <Link to={`/profile/${user.handle}`} className="min-w-0 flex-1 hover:underline">
+            {/* Autocomplete results */}
+            {userResults.length > 0 && (
+              <ul className="space-y-1 mt-2">
+                {userResults.map((user) => {
+                  const alreadyFollowing = user.isFollowing || followedDids.has(user.did) || myFollows.some((f) => f.did === user.did)
+                  return (
+                    <li key={user.did} className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+                      <Link to={`/profile/${user.handle}`}>
+                        <Avatar name={user.displayName} src={user.avatar} size="sm" />
+                      </Link>
+                      <Link to={`/profile/${user.handle}`} className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{user.displayName}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">@{user.handle}</p>
+                      </Link>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {alreadyFollowing ? (
+                          <Link
+                            to={`/profile/${user.handle}`}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/30"
+                          >
+                            <UserCheck size={14} />
+                            Following
+                          </Link>
+                        ) : (
+                          <Button
+                            size="sm"
+                            onClick={async () => {
+                              const uri = await follow(user.did)
+                              if (uri) {
+                                setFollowedDids((prev) => new Set([...prev, user.did]))
+                                setMyFollows((prev) => [...prev, user])
+                              }
+                            }}
+                            disabled={isFollowLoading(user.did)}
+                          >
+                            {isFollowLoading(user.did) ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <UserPlus size={14} />
+                            )}
+                            Follow
+                          </Button>
+                        )}
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </div>
+
+          {/* People you follow */}
+          {!userSearch.trim() && myFollows.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+                People you follow ({myFollows.length})
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {myFollows.map((user) => (
+                  <Link
+                    key={user.did}
+                    to={`/profile/${user.handle}`}
+                    className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors"
+                  >
+                    <Avatar name={user.displayName} src={user.avatar} size="sm" />
+                    <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{user.displayName}</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 truncate">@{user.handle}</p>
-                      {user.description && (
-                        <p className="text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5">{user.description}</p>
-                      )}
-                    </Link>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Link
-                        to={`/profile/${user.handle}`}
-                        className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline hidden sm:block"
-                      >
-                        View books
-                      </Link>
-                      {alreadyFollowing ? (
-                        <Link
-                          to={`/profile/${user.handle}`}
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors"
-                        >
-                          <UserCheck size={14} />
-                          Following
-                        </Link>
-                      ) : (
-                        <Button
-                          size="sm"
-                          onClick={async () => {
-                            const uri = await follow(user.did)
-                            if (uri) setFollowedDids((prev) => new Set([...prev, user.did]))
-                          }}
-                          disabled={isFollowLoading(user.did)}
-                        >
-                          {isFollowLoading(user.did) ? (
-                            <Loader2 className="w-3 h-3 animate-spin" />
-                          ) : (
-                            <UserPlus size={14} />
-                          )}
-                          Follow
-                        </Button>
-                      )}
                     </div>
-                  </li>
-                )
-              })}
-            </ul>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {followsLoading && (
+            <div className="flex justify-center py-4">
+              <Loader2 size={20} className="animate-spin text-gray-400" />
+            </div>
           )}
         </div>
       )}

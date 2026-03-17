@@ -32,7 +32,7 @@ const SHELF_FILTERS = [
 
 export default function Profile() {
   const { handle } = useParams()
-  const { did: myDid, isAuthenticated } = useAuth()
+  const { did: myDid, isAuthenticated, agent } = useAuth()
   const { follow, unfollow, isLoading: isFollowLoading } = useFollow()
   const { addBook, books: myBooks } = useBooks()
   const [profile, setProfile] = useState(null)
@@ -51,12 +51,27 @@ export default function Profile() {
       setError(null)
 
       try {
-        // Fetch profile (includes viewer.following if authenticated)
-        const profileRes = await fetch(
-          `https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(handle)}`
-        )
-        if (!profileRes.ok) throw new Error('User not found')
-        const profileData = await profileRes.json()
+        // Fetch profile — use authenticated agent if available (includes viewer.following)
+        let profileData
+        if (agent) {
+          try {
+            const res = await agent.app.bsky.actor.getProfile({ actor: handle })
+            profileData = res.data
+          } catch {
+            // Fall back to public API
+            const res = await fetch(
+              `https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(handle)}`
+            )
+            if (!res.ok) throw new Error('User not found')
+            profileData = await res.json()
+          }
+        } else {
+          const res = await fetch(
+            `https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(handle)}`
+          )
+          if (!res.ok) throw new Error('User not found')
+          profileData = await res.json()
+        }
 
         if (cancelled) return
         setProfile({
@@ -103,7 +118,7 @@ export default function Profile() {
 
     load()
     return () => { cancelled = true }
-  }, [handle])
+  }, [handle, agent])
 
   const handleFollow = async () => {
     if (!profile) return

@@ -16,17 +16,23 @@ import useCriteria from './hooks/useCriteria'
 import useSettings from './hooks/useSettings'
 import useAuth from './hooks/useAuth'
 
-function isOnboarded() {
-  return localStorage.getItem('shelfwise-onboarded') === 'true'
-}
-
 export default function App() {
   const { updateBook, removeBook, importBooks } = useBooks()
   const { criteria } = useCriteria()
   const { settings } = useSettings()
-  const { loading: authLoading } = useAuth()
+  const { loading: authLoading, isAuthenticated } = useAuth()
   const [detailBook, setDetailBook] = useState(null)
-  const [onboarded, setOnboarded] = useState(isOnboarded)
+  const [onboarded, setOnboarded] = useState(() => {
+    return localStorage.getItem('shelfwise-onboarded') === 'true'
+  })
+
+  // Derive: if authenticated, always treat as onboarded
+  const effectivelyOnboarded = onboarded || isAuthenticated
+
+  // Persist the onboarded flag when auth confirms it
+  if (isAuthenticated && !onboarded) {
+    localStorage.setItem('shelfwise-onboarded', 'true')
+  }
 
   const openDetail = useCallback((book) => setDetailBook(book), [])
   const closeDetail = useCallback(() => setDetailBook(null), [])
@@ -55,7 +61,7 @@ export default function App() {
     )
   }
 
-  if (!onboarded) {
+  if (!effectivelyOnboarded) {
     return (
       <Routes>
         <Route path="/oauth/callback" element={<OAuthCallback />} />
