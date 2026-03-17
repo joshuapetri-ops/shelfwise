@@ -10,7 +10,7 @@ import { buildAcquireLinks } from '../lib/purchaseLinks';
 import useBooks from '../hooks/useBooks';
 import useAuth from '../hooks/useAuth';
 import useChallenges from '../hooks/useChallenges';
-import { deleteBook as pdsDeleteBook } from '../lib/pdsSync';
+import { deleteBook as pdsDeleteBook, writeBook as pdsWriteBook } from '../lib/pdsSync';
 import { ExternalLink, Trash2, Plus, Share2, Lock } from 'lucide-react';
 
 const SHELVES = [
@@ -52,9 +52,14 @@ export default function BookDetail({ book, isOpen, onClose, onUpdate, onRemove, 
       if (!book.startedAt) updates.startedAt = today
     }
 
-    // Moving to private: delete from PDS (book stays in localStorage only)
-    if (shelfKey === 'private' && isAuthenticated && agent && did) {
-      pdsDeleteBook(agent, did, book).catch(() => {})
+    if (isAuthenticated && agent && did) {
+      if (shelfKey === 'private') {
+        // Moving to private: delete from PDS (book stays in localStorage only)
+        pdsDeleteBook(agent, did, book).catch(() => {})
+      } else if (book.shelf === 'private') {
+        // Moving FROM private to public shelf: re-sync to PDS
+        pdsWriteBook(agent, did, { ...book, ...updates }).catch(() => {})
+      }
     }
 
     if (bookExistsInLibrary) {
