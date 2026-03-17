@@ -5,7 +5,7 @@ import Stars from './ui/Stars'
 import { computeComposite, formatComposite, compositeColor, compositeBg } from '../lib/compositeScore'
 import { buildAcquireLinks } from '../lib/purchaseLinks'
 import useSettings from '../hooks/useSettings'
-import { ChevronDown, ExternalLink } from 'lucide-react'
+import { ChevronDown, ExternalLink, Share2 } from 'lucide-react'
 
 const shelfStyles = {
   reading: 'indigo',
@@ -118,33 +118,54 @@ export default function BookCard({ book, criteria, libraryCode, onClick }) {
           <Stars value={book.ratings.overall} readOnly />
         )}
 
-        {/* Get dropdown */}
-        <div ref={dropdownRef} className="relative mt-1" onClick={(e) => e.stopPropagation()}>
+        {/* Actions row */}
+        <div className="flex items-center gap-2 mt-1" onClick={(e) => e.stopPropagation()}>
+          {/* Get dropdown */}
+          <div ref={dropdownRef} className="relative">
+            <button
+              type="button"
+              onClick={handleGetClick}
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
+              Get
+              <ChevronDown className={`w-3 h-3 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {dropdownOpen && (
+              <div className="absolute left-0 top-full mt-1 z-20 w-48 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg py-1">
+                {links.map((link) => (
+                  <a
+                    key={link.name}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5 text-gray-400" />
+                    {link.name}
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Share */}
           <button
             type="button"
-            onClick={handleGetClick}
+            onClick={() => {
+              const shelfText = book.shelf === 'read' ? 'Just finished' : book.shelf === 'reading' ? 'Currently reading' : 'Added to my list:'
+              window.open(
+                'https://bsky.app/intent/compose?text=' + encodeURIComponent(
+                  `${shelfText} "${book.title}" by ${book.author} 📖\nhttps://www.shelfwise.xyz`
+                ), '_blank'
+              )
+            }}
             className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            title="Share on Bluesky"
           >
-            Get
-            <ChevronDown className={`w-3 h-3 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
+            <Share2 className="w-3 h-3" />
+            Share
           </button>
-
-          {dropdownOpen && (
-            <div className="absolute left-0 top-full mt-1 z-20 w-48 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg py-1">
-              {links.map((link) => (
-                <a
-                  key={link.name}
-                  href={link.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                >
-                  <ExternalLink className="w-3.5 h-3.5 text-gray-400" />
-                  {link.name}
-                </a>
-              ))}
-            </div>
-          )}
         </div>
       </div>
     </div>

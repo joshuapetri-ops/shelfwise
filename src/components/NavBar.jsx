@@ -1,13 +1,12 @@
 import { useLocation, Link } from 'react-router-dom'
-import { BookOpen, Search, Users, Target, Sparkles, Settings } from 'lucide-react'
+import { BookOpen, Search, Users, BarChart3, Settings } from 'lucide-react'
 import clsx from 'clsx'
 
 const TABS = [
   { to: '/', label: 'Shelves', icon: BookOpen },
   { to: '/search', label: 'Search', icon: Search },
   { to: '/social', label: 'Social', icon: Users },
-  { to: '/challenges', label: 'Challenges', icon: Target },
-  { to: '/for-you', label: 'For You', icon: Sparkles },
+  { to: '/stats', label: 'Stats', icon: BarChart3 },
   { to: '/settings', label: 'Settings', icon: Settings },
 ]
 
