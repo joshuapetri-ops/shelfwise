@@ -333,6 +333,44 @@ export default function BookDetail({ book, isOpen, onClose, onUpdate, onRemove, 
           </div>
         </div>
 
+        {/* ── Diversity tags ── */}
+        <div>
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+            Diversity &amp; Representation
+          </h3>
+          <div className="flex flex-wrap gap-1.5">
+            {[
+              { tag: 'diversity:bipoc-author', label: 'BIPOC Author' },
+              { tag: 'diversity:translated', label: 'Translated Work' },
+              { tag: 'diversity:lgbtq', label: 'LGBTQ+' },
+              { tag: 'diversity:own-voices', label: 'Own Voices' },
+              { tag: 'diversity:disability-rep', label: 'Disability Rep' },
+              { tag: 'diversity:indigenous-author', label: 'Indigenous Author' },
+            ].map(({ tag, label }) => {
+              const isActive = (book.tags || []).includes(tag);
+              return (
+                <button
+                  key={tag}
+                  onClick={() => {
+                    if (isActive) {
+                      onUpdate(book.key, { tags: (book.tags || []).filter((t) => t !== tag) });
+                    } else {
+                      onUpdate(book.key, { tags: [...(book.tags || []), tag] });
+                    }
+                  }}
+                  className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                    isActive
+                      ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+                      : 'border border-gray-200 text-gray-500 hover:border-purple-300 hover:text-purple-600 dark:border-gray-700 dark:text-gray-400 dark:hover:border-purple-600 dark:hover:text-purple-400'
+                  }`}
+                >
+                  {isActive ? '✓ ' : '+ '}{label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* ── Footer: Share + Remove ── */}
         <div className="border-t border-gray-200 pt-4 dark:border-gray-700 flex flex-wrap gap-3">
           <Button

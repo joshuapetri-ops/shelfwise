@@ -27,6 +27,8 @@ function bookToRecord(book) {
     tags: book.tags || [],
     notes: book.notes || '',
     ratings: book.ratings ? JSON.stringify(book.ratings) : '',
+    subjects: book.subjects ? JSON.stringify(book.subjects) : '',
+    pageCount: book.pageCount || 0,
     startedAt: book.startedAt || '',
     finishedAt: book.finishedAt || '',
     createdAt: book.addedAt || new Date().toISOString(),
@@ -50,6 +52,8 @@ function recordToBook(record, uri) {
     startedAt: record.startedAt || null,
     finishedAt: record.finishedAt || null,
     ratings: record.ratings ? JSON.parse(record.ratings) : {},
+    subjects: record.subjects ? JSON.parse(record.subjects) : [],
+    pageCount: record.pageCount || null,
     source: 'atproto',
     atUri: uri,
   }

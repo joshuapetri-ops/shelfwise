@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useRef, createContext, useContext } from 'react'
 import useAuth from './useAuth'
 import { writeBook, deleteBook, fetchBooks, processSyncQueue } from '../lib/pdsSync'
+import { logActivity, bootstrapFromBooks } from '../lib/activityLog'
 
 const STORAGE_KEY = 'shelfwise-books'
 const BooksContext = createContext()
@@ -17,6 +18,15 @@ function load() {
 export function BooksProvider({ children }) {
   const [books, setBooks] = useState(load)
   const auth = useAuth()
+  const hasBootstrapped = useRef(false)
+
+  // Bootstrap activity log from existing books on first mount
+  useEffect(() => {
+    if (!hasBootstrapped.current && books.length > 0) {
+      hasBootstrapped.current = true
+      bootstrapFromBooks(books)
+    }
+  }, [books])
   const hasSynced = useRef(false)
 
   // Persist to localStorage on every change
@@ -66,6 +76,8 @@ export function BooksProvider({ children }) {
       key: safeKey,
       ratings: book.ratings || {},
       notes: book.notes || '',
+      subjects: book.subjects || [],
+      pageCount: book.pageCount || null,
       addedAt: book.addedAt || new Date().toISOString(),
     }
 
@@ -82,6 +94,9 @@ export function BooksProvider({ children }) {
       return [...prev, bookWithKey]
     })
 
+    // Log activity for streaks
+    logActivity('add', safeKey)
+
     // PDS dual-write (fire and forget)
     if (auth?.isAuthenticated && auth.agent && auth.did) {
       writeBook(auth.agent, auth.did, bookWithKey).catch(() => {})
@@ -89,6 +104,10 @@ export function BooksProvider({ children }) {
   }, [auth])
 
   const updateBook = useCallback((key, updates) => {
+    // Log activity for streaks
+    const type = updates.shelf ? 'shelf' : updates.ratings ? 'rate' : 'update'
+    logActivity(type, key)
+
     setBooks((prev) => {
       const updated = prev.map((b) => (b.key === key ? { ...b, ...updates } : b))
 

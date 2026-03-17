@@ -1,9 +1,17 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import useBooks from '../hooks/useBooks'
-import useCriteria from '../hooks/useCriteria'
-import { computeComposite } from '../lib/compositeScore'
-import { BarChart3, BookOpen, Star, Clock, TrendingUp } from 'lucide-react'
+import { computeStreaks } from '../lib/activityLog'
+import {
+  calcGenreBreakdown,
+  calcReadingPace,
+  calcFastestSlowest,
+  calcTotalPages,
+  calcDiversityStats,
+  calcYearOverYear,
+  GENRE_COLORS,
+} from '../lib/statsCalculations'
+import { BarChart3, BookOpen, Star, Clock, TrendingUp, Flame, Zap } from 'lucide-react'
 
 function getYear(dateStr) {
   if (!dateStr) return null
@@ -22,7 +30,6 @@ const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Se
 
 export default function Stats() {
   const { books } = useBooks()
-  const { criteria } = useCriteria()
 
   const stats = useMemo(() => {
     const now = new Date()
@@ -44,7 +51,7 @@ export default function Stats() {
     // Top rated books
     const topRated = [...readBooks]
       .filter((b) => b.ratings?.overall)
-      .sort((a, b) => (b.ratings.overall || 0) - (a.ratings.overall || 0))
+      .sort((a, b) => (b.ratings?.overall || 0) - (a.ratings?.overall || 0))
       .slice(0, 5)
 
     // Books per month this year
@@ -62,25 +69,23 @@ export default function Stats() {
       count,
     }))
 
-    // Composite scores distribution
-    const composites = readBooks
-      .map((b) => computeComposite(b.ratings, criteria))
-      .filter((c) => c != null)
-
-    const avgComposite = composites.length > 0
-      ? Math.round(composites.reduce((a, b) => a + b, 0) / composites.length)
-      : null
-
     // Most read authors
     const authorCounts = {}
     for (const b of readBooks) {
-      if (b.author) {
-        authorCounts[b.author] = (authorCounts[b.author] || 0) + 1
-      }
+      if (b.author) authorCounts[b.author] = (authorCounts[b.author] || 0) + 1
     }
     const topAuthors = Object.entries(authorCounts)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
+
+    // Enhanced stats
+    const genreBreakdown = calcGenreBreakdown(readBooks)
+    const readingPace = calcReadingPace(readBooks)
+    const { fastest, slowest } = calcFastestSlowest(readBooks)
+    const totalPages = calcTotalPages(readBooks)
+    const diversityStats = calcDiversityStats(readBooks)
+    const yearOverYear = calcYearOverYear(books)
+    const streaks = computeStreaks()
 
     return {
       total: books.length,
@@ -91,11 +96,18 @@ export default function Stats() {
       avgRating,
       topRated,
       monthlyData,
-      avgComposite,
       topAuthors,
+      genreBreakdown,
+      readingPace,
+      fastest,
+      slowest,
+      totalPages,
+      diversityStats,
+      yearOverYear,
+      streaks,
       thisYear,
     }
-  }, [books, criteria])
+  }, [books])
 
   const maxMonthly = Math.max(...stats.monthlyData.map((d) => d.count), 1)
 
@@ -103,9 +115,7 @@ export default function Stats() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
         <BarChart3 className="w-16 h-16 text-gray-300 dark:text-gray-600 mb-6" />
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">
-          No stats yet
-        </h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">No stats yet</h1>
         <p className="text-gray-500 dark:text-gray-400 mb-8 max-w-md">
           Add books to your shelves to see your reading stats.
         </p>
@@ -144,9 +154,30 @@ export default function Stats() {
           <p className="text-xs text-gray-500 dark:text-gray-400">Avg Rating</p>
         </div>
         <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 text-center">
-          <Clock className="w-6 h-6 text-blue-600 dark:text-blue-400 mx-auto mb-2" />
-          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.reading}</p>
+          <Flame className="w-6 h-6 text-orange-500 mx-auto mb-2" />
+          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.streaks.currentStreak}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Day Streak</p>
+        </div>
+      </div>
+
+      {/* Reading pace + pages row */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
+        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 text-center">
+          <Clock className="w-5 h-5 text-blue-600 dark:text-blue-400 mx-auto mb-2" />
+          <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
+            {stats.readingPace ? `${stats.readingPace}d` : '—'}
+          </p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Avg Days/Book</p>
+        </div>
+        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 text-center">
+          <BookOpen className="w-5 h-5 text-gray-600 dark:text-gray-400 mx-auto mb-2" />
+          <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{stats.reading}</p>
           <p className="text-xs text-gray-500 dark:text-gray-400">Reading Now</p>
+        </div>
+        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 text-center">
+          <Zap className="w-5 h-5 text-amber-500 mx-auto mb-2" />
+          <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{stats.streaks.longestStreak}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Longest Streak</p>
         </div>
       </div>
 
@@ -171,14 +202,61 @@ export default function Stats() {
         </div>
       </div>
 
+      {/* Genre breakdown */}
+      {stats.genreBreakdown.length > 0 && stats.genreBreakdown[0].genre !== 'Unclassified' && (
+        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6 mb-8">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+            What You Read
+          </h2>
+          <div className="space-y-3">
+            {stats.genreBreakdown.slice(0, 8).map((g) => (
+              <div key={g.genre}>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="text-gray-700 dark:text-gray-300">{g.genre}</span>
+                  <span className="text-gray-500 dark:text-gray-400">{g.count} ({g.percentage}%)</span>
+                </div>
+                <div className="h-2 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{
+                      width: `${g.percentage}%`,
+                      backgroundColor: GENRE_COLORS[g.genre] || '#94a3b8',
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Fastest/slowest reads */}
+      {(stats.fastest || stats.slowest) && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+          {stats.fastest && (
+            <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-green-600 dark:text-green-400 mb-2">Fastest Read</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{stats.fastest.title}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{stats.fastest.author}</p>
+              <p className="text-lg font-bold text-green-600 dark:text-green-400 mt-1">{stats.fastest.days} days</p>
+            </div>
+          )}
+          {stats.slowest && stats.slowest.key !== stats.fastest?.key && (
+            <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400 mb-2">Longest Read</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{stats.slowest.title}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{stats.slowest.author}</p>
+              <p className="text-lg font-bold text-amber-600 dark:text-amber-400 mt-1">{stats.slowest.days} days</p>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Two columns: Top rated + Top authors */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
-        {/* Top rated */}
         {stats.topRated.length > 0 && (
           <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              Highest Rated
-            </h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Highest Rated</h2>
             <ol className="space-y-3">
               {stats.topRated.map((book, i) => (
                 <li key={book.key} className="flex items-center gap-3">
@@ -196,12 +274,9 @@ export default function Stats() {
           </div>
         )}
 
-        {/* Top authors */}
         {stats.topAuthors.length > 0 && (
           <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              Most Read Authors
-            </h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Most Read Authors</h2>
             <ol className="space-y-3">
               {stats.topAuthors.map(([author, count], i) => (
                 <li key={author} className="flex items-center gap-3">
@@ -215,16 +290,58 @@ export default function Stats() {
         )}
       </div>
 
+      {/* Diversity stats */}
+      {stats.diversityStats.totalTagged > 0 && (
+        <div className="rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950 p-6 mb-8">
+          <h2 className="text-lg font-semibold text-purple-900 dark:text-purple-100 mb-2">
+            Diversity &amp; Representation
+          </h2>
+          <p className="text-sm text-purple-700 dark:text-purple-300 mb-4">
+            {stats.diversityStats.totalTagged} of {stats.read} books tagged
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {stats.diversityStats.tags.map((t) => (
+              <span
+                key={t.label}
+                className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300"
+              >
+                {t.label}: {t.count}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Year over year */}
+      {stats.yearOverYear.length > 1 && (
+        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6 mb-8">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Year Over Year</h2>
+          <div className="flex items-end gap-3 h-24">
+            {stats.yearOverYear.map((y) => {
+              const maxYear = Math.max(...stats.yearOverYear.map((v) => v.count), 1)
+              return (
+                <div key={y.year} className="flex-1 flex flex-col items-center gap-1">
+                  <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{y.count}</span>
+                  <div
+                    className="w-full rounded-t bg-indigo-500 dark:bg-indigo-400 transition-all"
+                    style={{ height: `${Math.max(4, (y.count / maxYear) * 100)}%` }}
+                  />
+                  <span className="text-[10px] text-gray-500 dark:text-gray-400">{y.year}</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Library breakdown */}
       <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-          Library
-        </h2>
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Library</h2>
         <div className="space-y-3">
           {[
-            { label: 'Read', count: stats.read, color: 'bg-green-500', total: stats.total },
-            { label: 'Reading', count: stats.reading, color: 'bg-blue-500', total: stats.total },
-            { label: 'Want to Read', count: stats.wantToRead, color: 'bg-amber-500', total: stats.total },
+            { label: 'Read', count: stats.read, color: 'bg-green-500' },
+            { label: 'Reading', count: stats.reading, color: 'bg-blue-500' },
+            { label: 'Want to Read', count: stats.wantToRead, color: 'bg-amber-500' },
           ].map((item) => (
             <div key={item.label}>
               <div className="flex justify-between text-sm mb-1">
@@ -234,15 +351,13 @@ export default function Stats() {
               <div className="h-2 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
                 <div
                   className={`h-full rounded-full ${item.color} transition-all`}
-                  style={{ width: `${item.total > 0 ? (item.count / item.total) * 100 : 0}%` }}
+                  style={{ width: `${stats.total > 0 ? (item.count / stats.total) * 100 : 0}%` }}
                 />
               </div>
             </div>
           ))}
         </div>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
-          {stats.total} books total
-        </p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">{stats.total} books total</p>
       </div>
     </div>
   )
