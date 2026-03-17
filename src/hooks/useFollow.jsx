@@ -41,11 +41,13 @@ export default function useFollow() {
   const unfollow = useCallback(async (followUri) => {
     if (!isAuthenticated || !agent || !did || !followUri) return false
 
-    // Extract rkey from the follow URI: at://did:plc:.../app.bsky.graph.follow/rkey
+    // Extract rkey and subject DID from the follow URI
     const parts = followUri.split('/')
     const rkey = parts[parts.length - 1]
 
-    setLoadingDids((prev) => new Set([...prev, followUri]))
+    // Use the URI as loading key (matches what Profile passes to isFollowLoading)
+    const loadingKey = followUri
+    setLoadingDids((prev) => new Set([...prev, loadingKey]))
     try {
       await agent.com.atproto.repo.deleteRecord({
         repo: did,
@@ -58,7 +60,7 @@ export default function useFollow() {
     } finally {
       setLoadingDids((prev) => {
         const next = new Set(prev)
-        next.delete(followUri)
+        next.delete(loadingKey)
         return next
       })
     }

@@ -229,7 +229,7 @@ export default function BookDetail({ book, isOpen, onClose, onUpdate, onRemove, 
 
             {/* Composite score */}
             {composite !== null && (
-              <div className="mt-4 flex items-center gap-3 rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+              <div className="mt-4 flex items-center gap-3 rounded-lg border border-gray-200 bg-white dark:bg-gray-800 p-3 dark:border-gray-700">
                 <div className="flex flex-col">
                   <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                     Composite Score
