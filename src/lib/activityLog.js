@@ -85,8 +85,9 @@ export function computeStreaks() {
     return Math.floor(t.getTime() / 86400000)
   })
 
-  // Deduplicate and sort
+  // Deduplicate and sort, use Set for O(1) lookups
   const uniqueDays = [...new Set(dayNumbers)].sort((a, b) => a - b)
+  const daySet = new Set(uniqueDays)
 
   let longest = 1
   let current = 1
@@ -106,11 +107,10 @@ export function computeStreaks() {
   let startFrom = isActiveToday ? todayNum : todayNum - 1
   let currentStreak = 0
 
-  // Check if the user was active on startFrom day
-  if (uniqueDays.includes(startFrom)) {
+  if (daySet.has(startFrom)) {
     currentStreak = 1
     let check = startFrom - 1
-    while (uniqueDays.includes(check)) {
+    while (daySet.has(check)) {
       currentStreak++
       check--
     }

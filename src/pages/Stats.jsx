@@ -313,26 +313,26 @@ export default function Stats() {
       )}
 
       {/* Year over year */}
-      {stats.yearOverYear.length > 1 && (
-        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6 mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Year Over Year</h2>
-          <div className="flex items-end gap-3 h-24">
-            {stats.yearOverYear.map((y) => {
-              const maxYear = Math.max(...stats.yearOverYear.map((v) => v.count), 1)
-              return (
+      {stats.yearOverYear.length > 1 && (() => {
+        const maxYearCount = Math.max(...stats.yearOverYear.map((v) => v.count), 1)
+        return (
+          <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6 mb-8">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Year Over Year</h2>
+            <div className="flex items-end gap-3 h-24">
+              {stats.yearOverYear.map((y) => (
                 <div key={y.year} className="flex-1 flex flex-col items-center gap-1">
                   <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{y.count}</span>
                   <div
                     className="w-full rounded-t bg-indigo-500 dark:bg-indigo-400 transition-all"
-                    style={{ height: `${Math.max(4, (y.count / maxYear) * 100)}%` }}
+                    style={{ height: `${Math.max(4, (y.count / maxYearCount) * 100)}%` }}
                   />
                   <span className="text-[10px] text-gray-500 dark:text-gray-400">{y.year}</span>
                 </div>
-              )
-            })}
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       {/* Library breakdown */}
       <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6">

@@ -62,30 +62,29 @@ export function BooksProvider({ children }) {
           return merged
         })
         // Background: enrich books missing subjects (genres)
-        setBooks((current) => {
-          const needsEnrichment = current.filter(
-            (b) => (!b.subjects || b.subjects.length === 0) && b.title
-          )
-          if (needsEnrichment.length > 0) {
-            enrichSubjects(needsEnrichment).then((enriched) => {
-              setBooks((prev) => {
-                const enrichedMap = new Map(enriched.map((b) => [b.key, b]))
-                return prev.map((b) => {
-                  const e = enrichedMap.get(b.key)
-                  if (e && e.subjects && e.subjects.length > 0) {
-                    const updated = { ...b, subjects: e.subjects, pageCount: e.pageCount || b.pageCount }
-                    if (auth?.isAuthenticated && auth.agent && auth.did) {
-                      writeBook(auth.agent, auth.did, updated).catch(() => {})
-                    }
-                    return updated
+        // Read current state, enrich async, then merge results safely
+        const currentBooks = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
+        const needsEnrichment = currentBooks.filter(
+          (b) => (!b.subjects || b.subjects.length === 0) && b.title
+        )
+        if (needsEnrichment.length > 0) {
+          enrichSubjects(needsEnrichment).then((enriched) => {
+            const enrichedMap = new Map(enriched.map((b) => [b.key, b]))
+            setBooks((prev) =>
+              prev.map((b) => {
+                const e = enrichedMap.get(b.key)
+                if (e && e.subjects && e.subjects.length > 0) {
+                  const updated = { ...b, subjects: e.subjects, pageCount: e.pageCount || b.pageCount }
+                  if (auth?.isAuthenticated && auth.agent && auth.did) {
+                    writeBook(auth.agent, auth.did, updated).catch(() => {})
                   }
-                  return b
-                })
+                  return updated
+                }
+                return b
               })
-            }).catch(() => {})
-          }
-          return current
-        })
+            )
+          }).catch(() => {})
+        }
       } catch {
         // Sync failure is non-fatal — localStorage data is still good
       }
