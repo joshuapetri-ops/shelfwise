@@ -21,11 +21,42 @@ export function BooksProvider({ children }) {
   const auth = useAuth()
   const hasBootstrapped = useRef(false)
 
-  // Bootstrap activity log from existing books on first mount
+  // Bootstrap activity log and deduplicate on first mount
   useEffect(() => {
     if (!hasBootstrapped.current && books.length > 0) {
       hasBootstrapped.current = true
       bootstrapFromBooks(books)
+
+      // Deduplicate existing books by title+author (keep the one with the best data)
+      const seen = new Map()
+      const dupeKeys = []
+      for (const book of books) {
+        const ta = `${(book.title || '').toLowerCase().trim()}|${(book.author || '').toLowerCase().trim()}`
+        if (!ta || ta === '|') continue
+        if (seen.has(ta)) {
+          const existing = seen.get(ta)
+          // Keep the one with more data (OL key, cover, ratings, subjects)
+          const existingScore = (existing.key?.startsWith('/works/') ? 2 : 0) + (existing.coverId ? 1 : 0) + (existing.ratings?.overall ? 1 : 0) + ((existing.subjects?.length || 0) > 0 ? 1 : 0)
+          const newScore = (book.key?.startsWith('/works/') ? 2 : 0) + (book.coverId ? 1 : 0) + (book.ratings?.overall ? 1 : 0) + ((book.subjects?.length || 0) > 0 ? 1 : 0)
+          if (newScore > existingScore) {
+            // New one is better — merge data from old, mark old as dupe
+            dupeKeys.push(existing.key)
+            seen.set(ta, { ...book, shelf: book.shelf || existing.shelf, ratings: { ...existing.ratings, ...book.ratings }, notes: book.notes || existing.notes, startedAt: book.startedAt || existing.startedAt, finishedAt: book.finishedAt || existing.finishedAt })
+          } else {
+            // Existing is better — mark new as dupe
+            dupeKeys.push(book.key)
+          }
+        } else {
+          seen.set(ta, book)
+        }
+      }
+
+      if (dupeKeys.length > 0) {
+        const keysToRemove = new Set(dupeKeys)
+        Promise.resolve().then(() => {
+          setBooks((prev) => prev.filter((b) => !keysToRemove.has(b.key)))
+        })
+      }
     }
   }, [books])
   const hasSynced = useRef(false)
@@ -52,10 +83,21 @@ export function BooksProvider({ children }) {
         setBooks((prev) => {
           // Merge: PDS is source of truth, but keep local-only books
           const pdsKeys = new Set(pdsBooks.map((b) => b.key))
-          const localOnly = prev.filter((b) => !pdsKeys.has(b.key))
+          const pdsTitles = new Set(
+            pdsBooks.map((b) => `${(b.title || '').toLowerCase().trim()}|${(b.author || '').toLowerCase().trim()}`)
+          )
+
+          // Local-only: not on PDS by key AND not a title+author duplicate
+          const localOnly = prev.filter((b) => {
+            if (pdsKeys.has(b.key)) return false
+            const ta = `${(b.title || '').toLowerCase().trim()}|${(b.author || '').toLowerCase().trim()}`
+            if (ta !== '|' && pdsTitles.has(ta)) return false
+            return true
+          })
+
           mergedBooks = [...pdsBooks, ...localOnly]
 
-          // Sync local-only books UP to PDS so they're preserved
+          // Sync truly local-only books UP to PDS
           for (const book of localOnly) {
             writeBook(auth.agent, auth.did, book).catch(() => {})
           }
@@ -107,15 +149,40 @@ export function BooksProvider({ children }) {
     }
 
     setBooks((prev) => {
-      const existingIndex = prev.findIndex((b) => b.key === safeKey)
-      if (existingIndex !== -1) {
+      // Check by key first
+      const existingByKey = prev.findIndex((b) => b.key === safeKey)
+      if (existingByKey !== -1) {
         if (book.shelf) {
           return prev.map((b, i) =>
-            i === existingIndex ? { ...b, shelf: book.shelf } : b
+            i === existingByKey ? { ...b, shelf: book.shelf } : b
           )
         }
         return prev
       }
+
+      // Check by title+author (catches cross-source duplicates)
+      const titleLower = (book.title || '').toLowerCase().trim()
+      const authorLower = (book.author || '').toLowerCase().trim()
+      if (titleLower) {
+        const existingByTitle = prev.findIndex(
+          (b) => (b.title || '').toLowerCase().trim() === titleLower &&
+                 (b.author || '').toLowerCase().trim() === authorLower
+        )
+        if (existingByTitle !== -1) {
+          // Update the existing entry's shelf and merge any new data
+          return prev.map((b, i) =>
+            i === existingByTitle ? {
+              ...b,
+              shelf: book.shelf || b.shelf,
+              coverId: book.coverId || b.coverId,
+              isbn: book.isbn || b.isbn,
+              subjects: (book.subjects && book.subjects.length > 0) ? book.subjects : b.subjects,
+              key: safeKey.startsWith('/works/') ? safeKey : b.key, // prefer OL key
+            } : b
+          )
+        }
+      }
+
       return [...prev, bookWithKey]
     })
 
@@ -167,7 +234,16 @@ export function BooksProvider({ children }) {
   const importBooks = useCallback((newBooks) => {
     setBooks((prev) => {
       const existingKeys = new Set(prev.map((b) => b.key))
-      const unique = newBooks.filter((b) => !existingKeys.has(b.key))
+      const existingTitles = new Set(
+        prev.map((b) => `${(b.title || '').toLowerCase().trim()}|${(b.author || '').toLowerCase().trim()}`)
+      )
+      const unique = newBooks.filter((b) => {
+        if (existingKeys.has(b.key)) return false
+        const ta = `${(b.title || '').toLowerCase().trim()}|${(b.author || '').toLowerCase().trim()}`
+        if (existingTitles.has(ta)) return false
+        existingTitles.add(ta) // prevent dupes within the import itself
+        return true
+      })
 
       // PDS dual-write for imported books
       if (auth?.isAuthenticated && auth.agent && auth.did) {
