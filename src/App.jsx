@@ -77,8 +77,12 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 pb-20" data-1p-ignore>
-      <header className="sticky top-0 z-40 bg-white/80 dark:bg-gray-950/80 backdrop-blur border-b border-gray-200 dark:border-gray-800 px-4 py-3">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100" data-1p-ignore
+      style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom, 0px))' }}
+    >
+      <header className="sticky top-0 z-40 bg-white/80 dark:bg-gray-950/80 backdrop-blur border-b border-gray-200 dark:border-gray-800 px-4 py-3"
+        style={{ paddingTop: 'calc(0.75rem + env(safe-area-inset-top, 0px))' }}
+      >
         <Link to="/" className="text-xl font-bold tracking-tight hover:opacity-80 transition-opacity">
           <span className="text-indigo-600 dark:text-indigo-400">Shelf</span>wise
         </Link>

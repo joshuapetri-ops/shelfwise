@@ -19,23 +19,25 @@ export default function NavBar() {
   }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 pb-[env(safe-area-inset-bottom)]">
-      <ul className="flex justify-around">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+    >
+      <ul className="flex">
         {TABS.map(({ to, label, icon: Icon }) => { // eslint-disable-line no-unused-vars
           const active = isActive(to)
           return (
-            <li key={to}>
+            <li key={to} className="flex-1 min-w-0">
               <Link
                 to={to}
                 className={clsx(
-                  'flex flex-col items-center gap-0.5 px-1.5 sm:px-3 py-2 text-[10px] sm:text-[11px] font-medium transition min-w-0',
+                  'flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-medium transition w-full',
                   active
                     ? 'text-indigo-600 dark:text-indigo-400'
                     : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300',
                 )}
               >
-                <Icon size={20} className="sm:w-[22px] sm:h-[22px]" strokeWidth={active ? 2.2 : 1.6} />
-                <span className="truncate">{label}</span>
+                <Icon size={20} strokeWidth={active ? 2.2 : 1.6} />
+                <span className="truncate max-w-full px-1">{label}</span>
               </Link>
             </li>
           )

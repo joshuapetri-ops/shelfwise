@@ -7,6 +7,9 @@
   "background_color": "#ffffff",
   "theme_color": "#4f46e5",
   "orientation": "portrait-primary",
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
   "icons": [
     {
       "src": "/favicon.svg",
