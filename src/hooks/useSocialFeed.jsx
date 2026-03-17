@@ -107,7 +107,7 @@ function formatTimeAgo(date) {
  * Falls back to mock data when unauthenticated.
  */
 export default function useSocialFeed() {
-  const { isAuthenticated, did } = useAuth()
+  const { isAuthenticated, did, handle } = useAuth()
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -141,6 +141,14 @@ export default function useSocialFeed() {
         }
       }
 
+      // Add own books as feed events (so the feed isn't empty for solo users)
+      try {
+        const myBooks = await fetchUserBooks(did)
+        const me = { did, handle: handle || did, displayName: 'You', avatar: null }
+        const myEvents = myBooks.map((b) => toFeedEvent(me, b)).filter(Boolean)
+        allEvents.push(...myEvents)
+      } catch { /* own books are optional */ }
+
       // Sort by most recent first (using ISO date, not display string)
       allEvents.sort((a, b) => {
         const ta = a.sortTime || ''
@@ -154,7 +162,7 @@ export default function useSocialFeed() {
     } finally {
       setLoading(false)
     }
-  }, [isAuthenticated, did])
+  }, [isAuthenticated, did, handle])
 
   useEffect(() => {
     fetchFeed()

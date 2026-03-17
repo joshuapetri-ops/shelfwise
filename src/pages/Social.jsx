@@ -9,7 +9,7 @@ import useBooks from '../hooks/useBooks'
 import useAuth from '../hooks/useAuth'
 import useFollow from '../hooks/useFollow'
 import useSocialFeed from '../hooks/useSocialFeed'
-import { Users, BookOpen, Loader2, Wifi, Search, UserPlus, UserCheck } from 'lucide-react'
+import { Users, BookOpen, Loader2, Search, UserPlus, UserCheck, Rss, Compass } from 'lucide-react'
 
 const FILTERS = [
   { label: 'All', match: null },
@@ -32,12 +32,19 @@ const SHELF_COLORS = {
   dnf: 'red',
 }
 
+const SOCIAL_TABS = [
+  { key: 'feed', label: 'Feed', icon: Rss },
+  { key: 'discover', label: 'Discover', icon: Compass },
+  { key: 'following', label: 'Following', icon: Users },
+]
+
 export default function Social() {
   const { books, addBook } = useBooks()
   const { isAuthenticated, did, agent } = useAuth()
   const { events: liveEvents, loading: feedLoading, isLive } = useSocialFeed()
   const toast = useToast()
   const addToast = toast?.addToast || (() => {})
+  const [activeTab, setActiveTab] = useState('feed')
   const [activeFilter, setActiveFilter] = useState('All')
   const { follow, isLoading: isFollowLoading } = useFollow()
   const [userSearch, setUserSearch] = useState('')
@@ -105,9 +112,8 @@ export default function Social() {
     return () => clearTimeout(timer)
   }, [userSearch])
 
-  // Use live feed when authenticated
+  // Feed data
   const activity = isLive ? liveEvents : []
-
   const filtered =
     activeFilter === 'All'
       ? activity
@@ -118,8 +124,8 @@ export default function Social() {
   const findInLibrary = (book) =>
     books.find(
       (b) =>
-        b.title?.toLowerCase() === book.title?.toLowerCase() &&
-        b.author?.toLowerCase() === book.author?.toLowerCase(),
+        b.title?.toLowerCase() === book?.title?.toLowerCase() &&
+        b.author?.toLowerCase() === book?.author?.toLowerCase(),
     )
 
   const handleAddBook = (book) => {
@@ -132,25 +138,186 @@ export default function Social() {
     })
   }
 
+  // Not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 py-8">
+        <div className="flex items-center gap-3 mb-6">
+          <Users className="w-7 h-7 text-indigo-600 dark:text-indigo-400" />
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Social</h1>
+        </div>
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <Users className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-4" />
+          <p className="text-gray-500 dark:text-gray-400">
+            Sign in to see what your friends are reading.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
-      <div className="flex items-center gap-3 mb-6">
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-4">
         <Users className="w-7 h-7 text-indigo-600 dark:text-indigo-400" />
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Social</h1>
-        {isLive && (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-            <Wifi size={10} />
-            Live
-          </span>
-        )}
         {feedLoading && <Loader2 size={16} className="animate-spin text-gray-400" />}
       </div>
 
-      {/* Find & Follow */}
-      {isAuthenticated && (
-        <div className="mb-6">
-          {/* Search with autocomplete */}
-          <div className="relative mb-4">
+      {/* Tab navigation */}
+      <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6">
+        {SOCIAL_TABS.map(({ key, label, icon: Icon }) => ( // eslint-disable-line no-unused-vars
+          <button
+            key={key}
+            onClick={() => setActiveTab(key)}
+            className={`flex items-center gap-1.5 px-4 py-3 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              activeTab === key
+                ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+            }`}
+          >
+            <Icon size={16} />
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* ═══════ FEED TAB ═══════ */}
+      {activeTab === 'feed' && (
+        <div>
+          {/* Activity filter pills */}
+          {activity.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-6">
+              {FILTERS.map((f) => (
+                <button
+                  key={f.label}
+                  onClick={() => setActiveFilter(f.label)}
+                  className={`rounded-full px-3.5 py-1 text-sm font-medium transition-colors ${
+                    activeFilter === f.label
+                      ? 'bg-indigo-600 text-white dark:bg-indigo-500'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Empty feed */}
+          {!feedLoading && activity.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <Rss className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-4" />
+              <p className="text-gray-700 dark:text-gray-300 font-medium mb-1">
+                Your feed is building...
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mb-4">
+                Add books to your shelves and follow readers to see activity here.
+              </p>
+              <div className="flex gap-3">
+                <Link
+                  to="/search"
+                  className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition-colors"
+                >
+                  Search Books
+                </Link>
+                <button
+                  onClick={() => setActiveTab('discover')}
+                  className="inline-flex items-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                >
+                  Find Readers
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Filtered empty */}
+          {activity.length > 0 && filtered.length === 0 && (
+            <p className="text-center text-gray-500 dark:text-gray-400 py-12">
+              No activity for this filter.
+            </p>
+          )}
+
+          {/* Feed cards */}
+          <div className="space-y-4">
+            {filtered.map((item, idx) => {
+              const existing = findInLibrary(item.book)
+              return (
+                <div
+                  key={`${item.user?.handle}-${item.book?.title}-${idx}`}
+                  className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 shadow-sm"
+                >
+                  {/* User row */}
+                  <div className="flex items-center gap-3 mb-3">
+                    <Link to={`/profile/${item.user.handle}`}>
+                      <Avatar name={item.user.name} src={item.user.avatar} size="sm" />
+                    </Link>
+                    <div className="min-w-0 flex-1">
+                      <Link to={`/profile/${item.user.handle}`} className="hover:underline">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                          {item.user.name}
+                        </p>
+                      </Link>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                        @{item.user.handle}
+                      </p>
+                    </div>
+                    <span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
+                      {item.timestamp}
+                    </span>
+                  </div>
+
+                  {/* Action text */}
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                    <span className="font-medium">{(item.user.name || '').split(' ')[0]}</span>{' '}
+                    {item.action}
+                  </p>
+
+                  {/* Book info */}
+                  {item.book && (
+                    <div className="flex items-start gap-3">
+                      <BookCover
+                        coverId={item.book.coverId}
+                        title={item.book.title}
+                        size="S"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 line-clamp-1">
+                          {item.book.title}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {item.book.author}
+                        </p>
+                        <div className="mt-2">
+                          {existing ? (
+                            <Pill color={SHELF_COLORS[existing.shelf] ?? 'gray'}>
+                              {SHELF_LABELS[existing.shelf] ?? existing.shelf}
+                            </Pill>
+                          ) : (
+                            <button
+                              onClick={() => handleAddBook(item.book)}
+                              className="px-3 py-2 text-xs font-semibold bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 rounded-md hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors min-h-[44px] flex items-center"
+                            >
+                              + Want to Read
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ═══════ DISCOVER TAB ═══════ */}
+      {activeTab === 'discover' && (
+        <div>
+          {/* Search */}
+          <div className="relative mb-6">
             <div className="flex items-center gap-2">
               <div className="relative flex-1">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -163,215 +330,138 @@ export default function Social() {
                   data-1p-ignore="true"
                   data-lpignore="true"
                   data-form-type="other"
-                  className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 pl-9 pr-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:border-indigo-400 focus:outline-none"
+                  className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 pl-9 pr-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:border-indigo-400 focus:outline-none"
                 />
                 {searching && <Loader2 size={14} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-gray-400" />}
               </div>
             </div>
-
-            {/* Autocomplete results */}
-            {userResults.length > 0 && (
-              <ul className="space-y-1 mt-2">
-                {userResults.map((user) => {
-                  const alreadyFollowing = user.isFollowing || followedDids.has(user.did) || myFollows.some((f) => f.did === user.did)
-                  return (
-                    <li key={user.did} className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
-                      <Link to={`/profile/${user.handle}`}>
-                        <Avatar name={user.displayName} src={user.avatar} size="sm" />
-                      </Link>
-                      <Link to={`/profile/${user.handle}`} className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{user.displayName}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">@{user.handle}</p>
-                      </Link>
-                      <div className="flex items-center gap-2 shrink-0">
-                        {alreadyFollowing ? (
-                          <Link
-                            to={`/profile/${user.handle}`}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/30"
-                          >
-                            <UserCheck size={14} />
-                            Following
-                          </Link>
-                        ) : (
-                          <Button
-                            size="sm"
-                            onClick={async () => {
-                              const uri = await follow(user.did)
-                              if (uri) {
-                                setFollowedDids((prev) => new Set([...prev, user.did]))
-                                setMyFollows((prev) => [...prev, user])
-                                addToast(`Now following @${user.handle}`, 'success')
-                              }
-                            }}
-                            disabled={isFollowLoading(user.did)}
-                          >
-                            {isFollowLoading(user.did) ? (
-                              <Loader2 className="w-3 h-3 animate-spin" />
-                            ) : (
-                              <UserPlus size={14} />
-                            )}
-                            Follow
-                          </Button>
-                        )}
-                      </div>
-                    </li>
-                  )
-                })}
-              </ul>
-            )}
           </div>
 
-          {/* People you follow */}
-          {!userSearch.trim() && myFollows.length > 0 && (
-            <div className="mb-6">
+          {/* Search results */}
+          {userResults.length > 0 && (
+            <ul className="space-y-2 mb-6">
+              {userResults.map((user) => {
+                const alreadyFollowing = user.isFollowing || followedDids.has(user.did) || myFollows.some((f) => f.did === user.did)
+                return (
+                  <li key={user.did} className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+                    <Link to={`/profile/${user.handle}`}>
+                      <Avatar name={user.displayName} src={user.avatar} size="sm" />
+                    </Link>
+                    <Link to={`/profile/${user.handle}`} className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{user.displayName}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">@{user.handle}</p>
+                      {user.description && (
+                        <p className="text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5">{user.description}</p>
+                      )}
+                    </Link>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {alreadyFollowing ? (
+                        <Link
+                          to={`/profile/${user.handle}`}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/30"
+                        >
+                          <UserCheck size={14} />
+                          Following
+                        </Link>
+                      ) : (
+                        <Button
+                          size="sm"
+                          onClick={async () => {
+                            const uri = await follow(user.did)
+                            if (uri) {
+                              setFollowedDids((prev) => new Set([...prev, user.did]))
+                              setMyFollows((prev) => [...prev, user])
+                              addToast(`Now following @${user.handle}`, 'success')
+                            }
+                          }}
+                          disabled={isFollowLoading(user.did)}
+                        >
+                          {isFollowLoading(user.did) ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <UserPlus size={14} />
+                          )}
+                          Follow
+                        </Button>
+                      )}
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+
+          {/* Discovery prompt when not searching */}
+          {!userSearch.trim() && (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Compass className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-4" />
+              <p className="text-gray-700 dark:text-gray-300 font-medium mb-1">
+                Discover readers
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm">
+                Search for people you know on Bluesky by name or handle. Follow them to see their reading activity in your feed.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ═══════ FOLLOWING TAB ═══════ */}
+      {activeTab === 'following' && (
+        <div>
+          {followsLoading && (
+            <div className="flex justify-center py-8">
+              <Loader2 size={20} className="animate-spin text-gray-400" />
+            </div>
+          )}
+
+          {!followsLoading && myFollows.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <Users className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-4" />
+              <p className="text-gray-700 dark:text-gray-300 font-medium mb-1">
+                Not following anyone yet
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mb-4">
+                Find readers to follow and see what they&apos;re reading.
+              </p>
+              <button
+                onClick={() => setActiveTab('discover')}
+                className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition-colors"
+              >
+                <Search size={16} />
+                Find Readers
+              </button>
+            </div>
+          )}
+
+          {!followsLoading && myFollows.length > 0 && (
+            <>
               <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
-                People you follow ({myFollows.length})
+                {myFollows.length} following
               </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="space-y-2">
                 {myFollows.map((user) => (
                   <Link
                     key={user.did}
                     to={`/profile/${user.handle}`}
                     className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors"
                   >
-                    <Avatar name={user.displayName} src={user.avatar} size="sm" />
+                    <Avatar name={user.displayName} src={user.avatar} size="md" />
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{user.displayName}</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 truncate">@{user.handle}</p>
+                      {user.description && (
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 line-clamp-1">{user.description}</p>
+                      )}
                     </div>
+                    <span className="text-xs text-indigo-600 dark:text-indigo-400 shrink-0">View</span>
                   </Link>
                 ))}
               </div>
-            </div>
-          )}
-
-          {followsLoading && (
-            <div className="flex justify-center py-4">
-              <Loader2 size={20} className="animate-spin text-gray-400" />
-            </div>
+            </>
           )}
         </div>
       )}
-
-      {/* Filter pills */}
-      <div className="flex flex-wrap gap-2 mb-6">
-        {FILTERS.map((f) => (
-          <button
-            key={f.label}
-            onClick={() => setActiveFilter(f.label)}
-            className={`rounded-full px-3.5 py-1 text-sm font-medium transition-colors ${
-              activeFilter === f.label
-                ? 'bg-indigo-600 text-white dark:bg-indigo-500'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Not authenticated prompt */}
-      {!isAuthenticated && (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <Users className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-4" />
-          <p className="text-gray-500 dark:text-gray-400">
-            Sign in to see what your friends are reading.
-          </p>
-        </div>
-      )}
-
-      {/* Authenticated empty state */}
-      {isAuthenticated && !feedLoading && activity.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <BookOpen className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-4" />
-          <p className="text-gray-700 dark:text-gray-300 font-medium mb-1">
-            No activity yet
-          </p>
-          <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm">
-            Share Shelfwise with friends so you can see what they are reading!
-          </p>
-        </div>
-      )}
-
-      {/* Activity feed */}
-      <div className="space-y-4">
-        {isAuthenticated && activity.length > 0 && filtered.length === 0 && (
-          <p className="text-center text-gray-500 dark:text-gray-400 py-12">
-            No activity to show for this filter.
-          </p>
-        )}
-
-        {filtered.map((item, idx) => {
-          const existing = findInLibrary(item.book)
-
-          return (
-            <div
-              key={idx}
-              className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 shadow-sm"
-            >
-              {/* User row */}
-              <div className="flex items-center gap-3 mb-3">
-                <Link to={`/profile/${item.user.handle}`}>
-                  <Avatar name={item.user.name} src={item.user.avatar} size="sm" />
-                </Link>
-                <div className="min-w-0 flex-1">
-                  <Link to={`/profile/${item.user.handle}`} className="hover:underline">
-                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
-                      {item.user.name}
-                    </p>
-                  </Link>
-                  <Link to={`/profile/${item.user.handle}`} className="hover:underline">
-                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                      @{item.user.handle}
-                    </p>
-                  </Link>
-                </div>
-                <span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
-                  {item.timestamp}
-                </span>
-              </div>
-
-              {/* Action text */}
-              <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
-                <span className="font-medium">{item.user.name.split(' ')[0]}</span>{' '}
-                {item.action}
-              </p>
-
-              {/* Book info */}
-              <div className="flex items-start gap-3">
-                <BookCover
-                  coverId={item.book.coverId}
-                  title={item.book.title}
-                  size="S"
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 line-clamp-1">
-                    {item.book.title}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {item.book.author}
-                  </p>
-
-                  <div className="mt-2">
-                    {existing ? (
-                      <Pill color={SHELF_COLORS[existing.shelf] ?? 'gray'}>
-                        {SHELF_LABELS[existing.shelf] ?? existing.shelf}
-                      </Pill>
-                    ) : (
-                      <button
-                        onClick={() => handleAddBook(item.book)}
-                        className="px-3 py-2.5 text-xs font-semibold bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 rounded-md hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors min-h-[44px] flex items-center"
-                      >
-                        + Want to Read
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )
-        })}
-      </div>
     </div>
   )
 }
