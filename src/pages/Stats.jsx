@@ -38,7 +38,7 @@ export default function Stats() {
     // Average rating
     const rated = readBooks.filter((b) => b.ratings?.overall)
     const avgRating = rated.length > 0
-      ? (rated.reduce((sum, b) => sum + (b.ratings.overall || 0), 0) / rated.length).toFixed(1)
+      ? (rated.reduce((sum, b) => sum + (b.ratings?.overall || 0), 0) / rated.length).toFixed(1)
       : null
 
     // Top rated books
@@ -188,7 +188,7 @@ export default function Stats() {
                     <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{book.author}</p>
                   </div>
                   <span className="text-xs text-amber-600 dark:text-amber-400 shrink-0">
-                    {'★'.repeat(book.ratings.overall)}
+                    {'★'.repeat(book.ratings?.overall || 0)}
                   </span>
                 </li>
               ))}

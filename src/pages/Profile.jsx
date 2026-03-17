@@ -305,9 +305,9 @@ export default function Profile() {
                         {SHELF_LABELS[book.shelf] ?? book.shelf}
                       </Pill>
                     )}
-                    {book.ratings?.overall && (
+                    {book.ratings?.overall > 0 && (
                       <span className="text-xs text-amber-600 dark:text-amber-400">
-                        {'★'.repeat(book.ratings.overall)}{'☆'.repeat(Math.max(0, 5 - book.ratings.overall))}
+                        {'★'.repeat(book.ratings?.overall || 0)}{'☆'.repeat(Math.max(0, 5 - (book.ratings?.overall || 0)))}
                       </span>
                     )}
                   </div>
