@@ -28,7 +28,10 @@ export default function Stats() {
     const now = new Date()
     const thisYear = now.getFullYear()
     const readBooks = books.filter((b) => b.shelf === 'read')
-    const readThisYear = readBooks.filter((b) => getYear(b.addedAt) === thisYear)
+    const readThisYear = readBooks.filter((b) => {
+      const finishYear = getYear(b.finishedAt) || getYear(b.addedAt)
+      return finishYear === thisYear
+    })
     const readingBooks = books.filter((b) => b.shelf === 'reading')
     const wantBooks = books.filter((b) => b.shelf === 'wantToRead')
 
@@ -51,7 +54,7 @@ export default function Stats() {
       monthlyCount[key] = 0
     }
     for (const b of readThisYear) {
-      const m = getMonth(b.addedAt)
+      const m = getMonth(b.finishedAt) || getMonth(b.addedAt)
       if (m && monthlyCount[m] !== undefined) monthlyCount[m]++
     }
     const monthlyData = Object.entries(monthlyCount).map(([key, count]) => ({

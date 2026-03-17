@@ -36,13 +36,29 @@ export default function BookDetail({ book, isOpen, onClose, onUpdate, onRemove, 
 
   /* ── Shelf ── */
   function handleShelfChange(shelfKey) {
-    if (bookExistsInLibrary) {
-      onUpdate(book.key, { shelf: shelfKey });
-    } else {
-      addBook({ ...book, shelf: shelfKey });
-      // Also update the modal via onUpdate so the UI reflects the change
-      onUpdate(book.key, { shelf: shelfKey });
+    const today = new Date().toISOString().split('T')[0]
+    const updates = { shelf: shelfKey }
+
+    // Auto-set dates based on shelf change
+    if (shelfKey === 'reading' && !book.startedAt) {
+      updates.startedAt = today
     }
+    if (shelfKey === 'read' && !book.finishedAt) {
+      updates.finishedAt = today
+      if (!book.startedAt) updates.startedAt = today
+    }
+
+    if (bookExistsInLibrary) {
+      onUpdate(book.key, updates);
+    } else {
+      addBook({ ...book, ...updates });
+      onUpdate(book.key, updates);
+    }
+  }
+
+  /* ── Dates ── */
+  function handleDateChange(field, value) {
+    onUpdate(book.key, { [field]: value || null });
   }
 
   /* ── Ratings ── */
@@ -148,6 +164,37 @@ export default function BookDetail({ book, isOpen, onClose, onUpdate, onRemove, 
             </div>
           )}
         </div>
+
+        {/* ── Reading dates ── */}
+        {(book.shelf === 'reading' || book.shelf === 'read' || book.shelf === 'dnf') && (
+          <div>
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+              Reading Dates
+            </h3>
+            <div className="flex gap-4">
+              <div className="flex-1">
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Started</label>
+                <input
+                  type="date"
+                  value={book.startedAt || ''}
+                  onChange={(e) => handleDateChange('startedAt', e.target.value)}
+                  className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:border-indigo-400 focus:outline-none"
+                />
+              </div>
+              {(book.shelf === 'read' || book.shelf === 'dnf') && (
+                <div className="flex-1">
+                  <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Finished</label>
+                  <input
+                    type="date"
+                    value={book.finishedAt || ''}
+                    onChange={(e) => handleDateChange('finishedAt', e.target.value)}
+                    className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:border-indigo-400 focus:outline-none"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* ── Rating criteria ── */}
         {criteria && criteria.length > 0 && (

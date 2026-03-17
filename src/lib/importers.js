@@ -50,22 +50,30 @@ function parseCsvContent(content, delimiter) {
  */
 export function parseGoodreads(content) {
   const rows = parseCsvContent(content);
-  return rows.map((row) => ({
-    key: crypto.randomUUID(),
-    title: (row['Title'] || '').trim(),
-    author: (row['Author'] || '').trim(),
-    isbn: stripIsbnWrapper(row['ISBN13']),
-    coverId: null,
-    year: null,
-    shelf: mapGoodreadsShelf(row['Exclusive Shelf']),
-    ratings: row['My Rating'] && Number(row['My Rating']) > 0 ? { overall: Number(row['My Rating']) } : {},
-    notes: (row['My Review'] || '').trim(),
-    addedAt: row['Date Added'] ? new Date(row['Date Added']).toISOString() : null,
-    tags: row['Bookshelves']
-      ? row['Bookshelves'].split(',').map((t) => t.trim()).filter(Boolean)
-      : [],
-    source: 'goodreads',
-  }));
+  return rows.map((row) => {
+    const shelf = mapGoodreadsShelf(row['Exclusive Shelf']);
+    const dateRead = row['Date Read'] ? new Date(row['Date Read']).toISOString().split('T')[0] : null;
+    const dateAdded = row['Date Added'] ? new Date(row['Date Added']).toISOString() : null;
+
+    return {
+      key: crypto.randomUUID(),
+      title: (row['Title'] || '').trim(),
+      author: (row['Author'] || '').trim(),
+      isbn: stripIsbnWrapper(row['ISBN13']),
+      coverId: null,
+      year: null,
+      shelf,
+      ratings: row['My Rating'] && Number(row['My Rating']) > 0 ? { overall: Number(row['My Rating']) } : {},
+      notes: (row['My Review'] || '').trim(),
+      addedAt: dateAdded,
+      startedAt: (shelf === 'reading' || shelf === 'read') ? (dateAdded ? dateAdded.split('T')[0] : null) : null,
+      finishedAt: shelf === 'read' ? dateRead : null,
+      tags: row['Bookshelves']
+        ? row['Bookshelves'].split(',').map((t) => t.trim()).filter(Boolean)
+        : [],
+      source: 'goodreads',
+    };
+  });
 }
 
 /**
@@ -83,6 +91,10 @@ export function parseStoryGraph(content) {
     const pace = row['Pace'] ? [row['Pace'].trim()] : [];
     const format = row['Format'] ? [row['Format'].trim()] : [];
 
+    const shelf = mapGoodreadsShelf(row['Read Status']);
+    const lastDateRead = row['Last Date Read'] || row['Date Read'] || null;
+    const finishedAt = lastDateRead ? new Date(lastDateRead).toISOString().split('T')[0] : null;
+
     return {
       key: crypto.randomUUID(),
       title: (row['Title'] || '').trim(),
@@ -90,10 +102,12 @@ export function parseStoryGraph(content) {
       isbn: (row['ISBN/UID'] || '').trim(),
       coverId: null,
       year: null,
-      shelf: mapGoodreadsShelf(row['Read Status']),
+      shelf,
       ratings: row['Star Rating'] && parseFloat(row['Star Rating']) > 0 ? { overall: Math.round(parseFloat(row['Star Rating'])) } : {},
       notes: '',
       addedAt: null,
+      startedAt: null,
+      finishedAt: shelf === 'read' ? finishedAt : null,
       tags: [...moods, ...pace, ...format],
       source: 'storygraph',
     };
@@ -148,6 +162,8 @@ export function parseLibraryThing(content) {
       ratings: col(row, 'stars') && Number(col(row, 'stars')) > 0 ? { overall: Number(col(row, 'stars')) } : {},
       notes: col(row, 'review'),
       addedAt: null,
+      startedAt: null,
+      finishedAt: null,
       tags,
       source: 'librarything',
     };
@@ -172,6 +188,8 @@ export function parseOpenLibrary(content) {
     ratings: row['rating'] && Number(row['rating']) > 0 ? { overall: Number(row['rating']) } : {},
     notes: '',
     addedAt: null,
+    startedAt: null,
+    finishedAt: null,
     tags: [],
     source: 'openlibrary',
   }));
@@ -214,6 +232,8 @@ export function parseCalibre(content) {
       ratings: row['rating'] && Number(row['rating']) > 0 ? { overall: Math.round(Number(row['rating']) / 2) } : {},
       notes: stripHtml(row['comments']),
       addedAt: null,
+      startedAt: null,
+      finishedAt: null,
       tags: rawTags,
       source: 'calibre',
     };
@@ -319,6 +339,8 @@ export function exportShelfwiseCSV(books) {
     ratings: book.ratings ? JSON.stringify(book.ratings) : '',
     notes: book.notes || '',
     addedAt: book.addedAt || '',
+    startedAt: book.startedAt || '',
+    finishedAt: book.finishedAt || '',
     tags: Array.isArray(book.tags) ? book.tags.join(', ') : book.tags || '',
     source: book.source || '',
   }));
