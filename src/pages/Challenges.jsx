@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { Target, ChevronDown, ChevronUp, CheckCircle, Trash2, Copy, Plus } from 'lucide-react'
 import useBooks from '../hooks/useBooks'
 import useChallenges from '../hooks/useChallenges'
@@ -29,7 +29,7 @@ export default function Challenges() {
   const toastCtx = useToast()
   const addToast = useMemo(() => toastCtx?.addToast || (() => {}), [toastCtx])
 
-  const [celebratedIds] = useState(() => new Set(JSON.parse(localStorage.getItem('shelfwise-celebrated') || '[]')))
+  const celebratedRef = useRef(new Set(JSON.parse(localStorage.getItem('shelfwise-celebrated') || '[]')))
   const [showForm, setShowForm] = useState(false)
   const [title, setTitle] = useState('')
   const [goal, setGoal] = useState(10)
@@ -45,13 +45,13 @@ export default function Challenges() {
   useEffect(() => {
     for (const c of challenges) {
       const progress = getChallengeProgress(c, books)
-      if (progress >= c.goal && !celebratedIds.has(c.id)) {
-        celebratedIds.add(c.id)
-        localStorage.setItem('shelfwise-celebrated', JSON.stringify([...celebratedIds]))
+      if (progress >= c.goal && !celebratedRef.current.has(c.id)) {
+        celebratedRef.current.add(c.id)
+        localStorage.setItem('shelfwise-celebrated', JSON.stringify([...celebratedRef.current]))
         addToast(`🎉 You completed "${c.title}"!`, 'success')
       }
     }
-  }, [challenges, books, getChallengeProgress, celebratedIds, addToast])
+  }, [challenges, books, getChallengeProgress, addToast])
 
   function handleCreate() {
     if (!title.trim() || !endDate) return
