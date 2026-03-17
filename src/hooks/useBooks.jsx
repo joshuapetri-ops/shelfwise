@@ -64,6 +64,7 @@ export function BooksProvider({ children }) {
     }
   }, [books])
   const hasSynced = useRef(false)
+  const hasEnriched = useRef(false)
 
   // Persist to localStorage on every change
   useEffect(() => {
@@ -109,7 +110,10 @@ export function BooksProvider({ children }) {
           return mergedBooks
         })
 
-        // Background: enrich books missing subjects (genres)
+        // Background: enrich books missing subjects (genres) — once only
+        if (!hasEnriched.current) {
+        hasEnriched.current = true
+
         const needsEnrichment = mergedBooks.filter(
           (b) => (!b.subjects || b.subjects.length === 0) && b.title
         )
@@ -131,6 +135,7 @@ export function BooksProvider({ children }) {
             )
           }).catch(() => {})
         }
+        } // end hasEnriched guard
       } catch {
         // Sync failure is non-fatal — localStorage data is still good
       }

@@ -27,7 +27,8 @@ const SHELF_NAMES = { read: 'Read', reading: 'Reading', wantToRead: 'Want to Rea
 export default function Search({ onBookClick }) {
   const { books, addBook } = useBooks()
   const { settings } = useSettings()
-  const { addToast } = useToast()
+  const toast = useToast()
+  const addToast = toast?.addToast || (() => {})
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(false)
   const [loadingMessage, setLoadingMessage] = useState(null)

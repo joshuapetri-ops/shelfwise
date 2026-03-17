@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { Routes, Route, Navigate, Link } from 'react-router-dom'
 import NavBar from './components/NavBar'
 import BookDetail from './components/BookDetail'
@@ -30,10 +30,12 @@ export default function App() {
   // Derive: if authenticated, always treat as onboarded
   const effectivelyOnboarded = onboarded || isAuthenticated
 
-  // Persist the onboarded flag when auth confirms it
-  if (isAuthenticated && !onboarded) {
-    localStorage.setItem('shelfwise-onboarded', 'true')
-  }
+  // Persist the onboarded flag when auth confirms it (side effect only, no state change)
+  useEffect(() => {
+    if (isAuthenticated && !onboarded) {
+      localStorage.setItem('shelfwise-onboarded', 'true')
+    }
+  }, [isAuthenticated, onboarded])
 
   const openDetail = useCallback((book) => setDetailBook(book), [])
   const closeDetail = useCallback(() => setDetailBook(null), [])

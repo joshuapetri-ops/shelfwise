@@ -1,18 +1,21 @@
 /* eslint-disable react-refresh/only-export-components */
-import { useState, createContext, useContext, useCallback } from 'react'
+import { useState, useRef, createContext, useContext, useCallback } from 'react'
 import { X } from 'lucide-react'
 
 const ToastContext = createContext()
 
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([])
+  const timersRef = useRef(new Map())
 
   const addToast = useCallback((message, type = 'info') => {
     const id = Date.now()
     setToasts((prev) => [...prev, { id, message, type }])
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id))
+      timersRef.current.delete(id)
     }, 4000)
+    timersRef.current.set(id, timer)
   }, [])
 
   const removeToast = useCallback((id) => {
