@@ -150,7 +150,7 @@ export default function Social() {
 
   const handleRecommend = (book, handle) => {
     const mention = handle.startsWith('@') ? handle : `@${handle}`
-    const text = `${mention} you should check out "${book.title}" by ${book.author} 📖\nhttps://www.shelfwise.xyz`
+    const text = `${mention} you should check out "${book.title || 'this book'}" by ${book.author || 'Unknown'} 📖\nhttps://www.shelfwise.xyz`
     window.open(
       'https://bsky.app/intent/compose?text=' + encodeURIComponent(text),
       '_blank'
@@ -342,7 +342,9 @@ export default function Social() {
                             Share
                           </button>
                           <button
-                            onClick={() => setRecommendBook(recommendBook?.title === item.book.title ? null : item.book)}
+                            onClick={() => setRecommendBook(
+                              recommendBook?.title === item.book.title && recommendBook?.author === item.book.author ? null : item.book
+                            )}
                             className="inline-flex items-center gap-1 px-2 py-1 text-xs text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded transition-colors"
                             title="Recommend to a friend"
                           >
@@ -352,7 +354,7 @@ export default function Social() {
                         </div>
 
                         {/* Recommend inline form */}
-                        {recommendBook?.title === item.book.title && (
+                        {recommendBook?.title === item.book.title && recommendBook?.author === item.book.author && (
                           <div className="mt-2 flex gap-2">
                             <input
                               type="text"

@@ -453,7 +453,7 @@ export default function BookDetail({ book, isOpen, onClose, onUpdate, onRemove, 
                   const mention = recommendHandle.trim().startsWith('@') ? recommendHandle.trim() : `@${recommendHandle.trim()}`
                   window.open(
                     'https://bsky.app/intent/compose?text=' + encodeURIComponent(
-                      `${mention} you should check out "${book.title}" by ${book.author} 📖\nhttps://www.shelfwise.xyz`
+                      `${mention} you should check out "${book.title || 'this book'}" by ${book.author || 'Unknown'} 📖\nhttps://www.shelfwise.xyz`
                     ), '_blank'
                   )
                   setShowRecommend(false)
@@ -472,7 +472,7 @@ export default function BookDetail({ book, isOpen, onClose, onUpdate, onRemove, 
                 const mention = recommendHandle.trim().startsWith('@') ? recommendHandle.trim() : `@${recommendHandle.trim()}`
                 window.open(
                   'https://bsky.app/intent/compose?text=' + encodeURIComponent(
-                    `${mention} you should check out "${book.title}" by ${book.author} 📖\nhttps://www.shelfwise.xyz`
+                    `${mention} you should check out "${book.title || 'this book'}" by ${book.author || 'Unknown'} 📖\nhttps://www.shelfwise.xyz`
                   ), '_blank'
                 )
                 setShowRecommend(false)
