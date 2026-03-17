@@ -272,6 +272,11 @@ export default function Social() {
                   <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
                     <span className="font-medium">{(item.user.name || '').split(' ')[0]}</span>{' '}
                     {item.action}
+                    {item.book?.ratings?.overall > 0 && (
+                      <span className="ml-2 text-amber-500">
+                        {'★'.repeat(item.book.ratings.overall)}{'☆'.repeat(Math.max(0, 5 - item.book.ratings.overall))}
+                      </span>
+                    )}
                   </p>
 
                   {/* Book info */}

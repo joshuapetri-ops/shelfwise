@@ -81,6 +81,7 @@ function toFeedEvent(user, bookRecord) {
       title: record.title || 'Unknown',
       author: record.author || '',
       coverId: record.coverId || null,
+      ratings: record.ratings ? (typeof record.ratings === 'string' ? (() => { try { return JSON.parse(record.ratings) } catch { return {} } })() : record.ratings) : {},
     },
     timestamp: bookRecord.createdAt
       ? formatTimeAgo(new Date(bookRecord.createdAt))
