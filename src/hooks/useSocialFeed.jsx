@@ -120,8 +120,9 @@ export default function useSocialFeed() {
     setError(null)
 
     try {
-      // Get who the user follows
-      const follows = await fetchFollows(did)
+      // Get who the user follows (exclude self to avoid double-counting)
+      const allFollows = await fetchFollows(did)
+      const follows = allFollows.filter((f) => f.did !== did)
 
       // Fetch shelfwise books from each followed user (in parallel, max 10 at a time)
       const allEvents = []
