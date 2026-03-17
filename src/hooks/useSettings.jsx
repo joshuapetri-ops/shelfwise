@@ -7,7 +7,7 @@ const STORAGE_KEY = 'shelfwise-settings'
 const SettingsContext = createContext()
 
 const DEFAULTS = {
-  theme: 'light',
+  theme: 'system',
   defaultAction: 'details',
   defaultAcquire: 'none',
   libraryCode: '',
@@ -33,12 +33,27 @@ export function SettingsProvider({ children }) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
   }, [settings])
 
-  // Dark mode class toggle
+  // Dark mode class toggle — supports 'light', 'dark', and 'system'
   useEffect(() => {
-    if (settings.theme === 'dark') {
-      document.documentElement.classList.add('dark')
-    } else {
-      document.documentElement.classList.remove('dark')
+    function applyTheme() {
+      const isDark =
+        settings.theme === 'dark' ||
+        (settings.theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+
+      if (isDark) {
+        document.documentElement.classList.add('dark')
+      } else {
+        document.documentElement.classList.remove('dark')
+      }
+    }
+
+    applyTheme()
+
+    // Listen for system theme changes when set to 'system'
+    if (settings.theme === 'system') {
+      const mq = window.matchMedia('(prefers-color-scheme: dark)')
+      mq.addEventListener('change', applyTheme)
+      return () => mq.removeEventListener('change', applyTheme)
     }
   }, [settings.theme])
 

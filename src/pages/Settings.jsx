@@ -267,26 +267,23 @@ export default function Settings({ onLogout }) {
             <div className="flex items-center gap-4">
               <Sun size={20} className="text-amber-500" />
               <div className="flex rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600">
-                <button
-                  onClick={() => updateSetting('theme', 'light')}
-                  className={`px-4 py-2 text-sm font-medium transition-colors ${
-                    settings.theme === 'light'
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-                  }`}
-                >
-                  Light
-                </button>
-                <button
-                  onClick={() => updateSetting('theme', 'dark')}
-                  className={`px-4 py-2 text-sm font-medium transition-colors ${
-                    settings.theme === 'dark'
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-                  }`}
-                >
-                  Dark
-                </button>
+                {[
+                  { value: 'light', label: 'Light' },
+                  { value: 'system', label: 'System' },
+                  { value: 'dark', label: 'Dark' },
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => updateSetting('theme', opt.value)}
+                    className={`px-4 py-2 text-sm font-medium transition-colors ${
+                      settings.theme === opt.value
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
               </div>
               <Moon size={20} className="text-indigo-400" />
             </div>
