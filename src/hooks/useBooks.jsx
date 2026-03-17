@@ -112,9 +112,8 @@ export function BooksProvider({ children }) {
 
         // Background: enrich books missing subjects (genres) — once only
         if (!hasEnriched.current) {
-        hasEnriched.current = true
-
-        const needsEnrichment = mergedBooks.filter(
+          hasEnriched.current = true
+          const needsEnrichment = mergedBooks.filter(
           (b) => (!b.subjects || b.subjects.length === 0) && b.title
         )
         if (needsEnrichment.length > 0) {
@@ -134,8 +133,8 @@ export function BooksProvider({ children }) {
               })
             )
           }).catch(() => {})
+          }
         }
-        } // end hasEnriched guard
       } catch {
         // Sync failure is non-fatal — localStorage data is still good
       }

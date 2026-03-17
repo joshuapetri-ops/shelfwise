@@ -19,7 +19,7 @@ export default function Modal({ isOpen, onClose, title, children }) {
         style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom, 0px))' }}
       >
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 truncate mr-2">{title}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
             <X size={20} />
           </button>

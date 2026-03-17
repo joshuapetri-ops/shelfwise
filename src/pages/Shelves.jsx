@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import useBooks from '../hooks/useBooks'
 import useCriteria from '../hooks/useCriteria'
 import useChallenges from '../hooks/useChallenges'
@@ -97,7 +98,7 @@ export default function Shelves({ onBookClick, libraryCode }) {
     <div className="max-w-7xl mx-auto px-4 py-8">
       {/* Challenge banner */}
       {activeChallenge && (
-        <div className="mb-4 rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950 px-4 py-2 flex items-center gap-3">
+        <Link to="/challenges" className="block mb-4 rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950 px-4 py-2 flex items-center gap-3 hover:bg-indigo-100 dark:hover:bg-indigo-900 transition-colors">
           <span className="text-sm font-medium text-indigo-700 dark:text-indigo-300">
             {activeChallenge.title}: {getChallengeProgress(activeChallenge, books)}/{activeChallenge.goal} books
           </span>
@@ -107,7 +108,7 @@ export default function Shelves({ onBookClick, libraryCode }) {
               style={{ width: `${Math.min(100, Math.round((getChallengeProgress(activeChallenge, books) / activeChallenge.goal) * 100))}%` }}
             />
           </div>
-        </div>
+        </Link>
       )}
 
       {/* Filter pills */}
