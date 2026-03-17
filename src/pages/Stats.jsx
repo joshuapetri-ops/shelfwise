@@ -1,8 +1,10 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import useBooks from '../hooks/useBooks'
+import BookCover from '../components/ui/BookCover'
 import { computeStreaks } from '../lib/activityLog'
 import {
+  classifyGenres,
   calcGenreBreakdown,
   calcReadingPace,
   calcFastestSlowest,
@@ -11,7 +13,7 @@ import {
   calcYearOverYear,
   GENRE_COLORS,
 } from '../lib/statsCalculations'
-import { BarChart3, BookOpen, Star, Clock, TrendingUp, Flame, Zap } from 'lucide-react'
+import { BarChart3, BookOpen, Star, Clock, TrendingUp, Flame, Zap, ChevronDown } from 'lucide-react'
 
 function getYear(dateStr) {
   if (!dateStr) return null
@@ -28,8 +30,43 @@ function getMonth(dateStr) {
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
+function ExpandableSection({ title, children, books: sectionBooks }) {
+  const [expanded, setExpanded] = useState(false)
+  return (
+    <div>
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center justify-between mb-4"
+      >
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
+        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+      </button>
+      {children}
+      {expanded && sectionBooks && sectionBooks.length > 0 && (
+        <div className="mt-4 border-t border-gray-200 dark:border-gray-700 pt-4 space-y-2">
+          {sectionBooks.map((book) => (
+            <div key={book.key} className="flex items-center gap-3">
+              <BookCover coverId={book.coverId} isbn={book.isbn} coverUrl={book.coverUrl} title={book.title} size="S" />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{book.title}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{book.author}</p>
+              </div>
+              {book.ratings?.overall > 0 && (
+                <span className="text-xs text-amber-600 dark:text-amber-400 shrink-0">
+                  {'★'.repeat(book.ratings?.overall || 0)}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function Stats() {
   const { books } = useBooks()
+  const [expandedGenre, setExpandedGenre] = useState(null)
 
   const stats = useMemo(() => {
     const now = new Date()
@@ -80,6 +117,17 @@ export default function Stats() {
 
     // Enhanced stats
     const genreBreakdown = calcGenreBreakdown(readBooks)
+
+    // Genre-to-books map for drill-down
+    const genreBooks = {}
+    for (const book of readBooks) {
+      const genres = classifyGenres(book.subjects)
+      for (const genre of genres) {
+        if (!genreBooks[genre]) genreBooks[genre] = []
+        genreBooks[genre].push(book)
+      }
+    }
+
     const readingPace = calcReadingPace(readBooks)
     const { fastest, slowest } = calcFastestSlowest(readBooks)
     const totalPages = calcTotalPages(readBooks)
@@ -90,14 +138,18 @@ export default function Stats() {
     return {
       total: books.length,
       read: readBooks.length,
+      readBooks,
       readThisYear: readThisYear.length,
+      readThisYearBooks: readThisYear,
       reading: readingBooks.length,
+      readingBooks,
       wantToRead: wantBooks.length,
       avgRating,
       topRated,
       monthlyData,
       topAuthors,
       genreBreakdown,
+      genreBooks,
       readingPace,
       fastest,
       slowest,
@@ -183,23 +235,25 @@ export default function Stats() {
 
       {/* Monthly chart */}
       <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6 mb-8">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-          Books Read in {stats.thisYear}
-        </h2>
-        <div className="flex items-end gap-1 h-32">
-          {stats.monthlyData.map((d) => (
-            <div key={d.month} className="flex-1 flex flex-col items-center gap-1">
-              <span className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">
-                {d.count > 0 ? d.count : ''}
-              </span>
-              <div
-                className={`w-full rounded-t transition-all ${d.count > 0 ? 'bg-indigo-500 dark:bg-indigo-400' : 'bg-gray-100 dark:bg-gray-800'}`}
-                style={{ height: `${Math.max(2, (d.count / maxMonthly) * 100)}%` }}
-              />
-              <span className="text-[10px] text-gray-400 dark:text-gray-500">{d.month}</span>
-            </div>
-          ))}
-        </div>
+        <ExpandableSection
+          title={`Books Read in ${stats.thisYear}`}
+          books={stats.readThisYearBooks}
+        >
+          <div className="flex items-end gap-1 h-32">
+            {stats.monthlyData.map((d) => (
+              <div key={d.month} className="flex-1 flex flex-col items-center gap-1">
+                <span className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">
+                  {d.count > 0 ? d.count : ''}
+                </span>
+                <div
+                  className={`w-full rounded-t transition-all ${d.count > 0 ? 'bg-indigo-500 dark:bg-indigo-400' : 'bg-gray-100 dark:bg-gray-800'}`}
+                  style={{ height: `${Math.max(2, (d.count / maxMonthly) * 100)}%` }}
+                />
+                <span className="text-[10px] text-gray-400 dark:text-gray-500">{d.month}</span>
+              </div>
+            ))}
+          </div>
+        </ExpandableSection>
       </div>
 
       {/* Genre breakdown */}
@@ -211,19 +265,40 @@ export default function Stats() {
           <div className="space-y-3">
             {stats.genreBreakdown.slice(0, 8).map((g) => (
               <div key={g.genre}>
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-700 dark:text-gray-300">{g.genre}</span>
-                  <span className="text-gray-500 dark:text-gray-400">{g.count} ({g.percentage}%)</span>
-                </div>
-                <div className="h-2 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all"
-                    style={{
-                      width: `${g.percentage}%`,
-                      backgroundColor: GENRE_COLORS[g.genre] || '#94a3b8',
-                    }}
-                  />
-                </div>
+                <button
+                  onClick={() => setExpandedGenre(expandedGenre === g.genre ? null : g.genre)}
+                  className="w-full text-left"
+                >
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="text-gray-700 dark:text-gray-300 flex items-center gap-1">
+                      {g.genre}
+                      <ChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${expandedGenre === g.genre ? 'rotate-180' : ''}`} />
+                    </span>
+                    <span className="text-gray-500 dark:text-gray-400">{g.count} ({g.percentage}%)</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{
+                        width: `${g.percentage}%`,
+                        backgroundColor: GENRE_COLORS[g.genre] || '#94a3b8',
+                      }}
+                    />
+                  </div>
+                </button>
+                {expandedGenre === g.genre && stats.genreBooks[g.genre] && (
+                  <div className="mt-2 ml-2 space-y-2 border-l-2 pl-3" style={{ borderColor: GENRE_COLORS[g.genre] || '#94a3b8' }}>
+                    {stats.genreBooks[g.genre].map((book) => (
+                      <div key={book.key} className="flex items-center gap-2">
+                        <BookCover coverId={book.coverId} isbn={book.isbn} coverUrl={book.coverUrl} title={book.title} size="S" />
+                        <div className="min-w-0">
+                          <p className="text-sm text-gray-900 dark:text-gray-100 truncate">{book.title}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{book.author}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
           </div>

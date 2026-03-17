@@ -48,23 +48,23 @@ export function BooksProvider({ children }) {
         // Fetch books from PDS
         const pdsBooks = await fetchBooks(auth.agent, auth.did)
 
+        let mergedBooks = []
         setBooks((prev) => {
           // Merge: PDS is source of truth, but keep local-only books
           const pdsKeys = new Set(pdsBooks.map((b) => b.key))
           const localOnly = prev.filter((b) => !pdsKeys.has(b.key))
-          const merged = [...pdsBooks, ...localOnly]
+          mergedBooks = [...pdsBooks, ...localOnly]
 
           // Sync local-only books UP to PDS so they're preserved
           for (const book of localOnly) {
             writeBook(auth.agent, auth.did, book).catch(() => {})
           }
 
-          return merged
+          return mergedBooks
         })
+
         // Background: enrich books missing subjects (genres)
-        // Read current state, enrich async, then merge results safely
-        const currentBooks = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
-        const needsEnrichment = currentBooks.filter(
+        const needsEnrichment = mergedBooks.filter(
           (b) => (!b.subjects || b.subjects.length === 0) && b.title
         )
         if (needsEnrichment.length > 0) {

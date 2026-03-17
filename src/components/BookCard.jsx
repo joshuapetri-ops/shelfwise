@@ -26,7 +26,7 @@ export default function BookCard({ book, criteria, libraryCode, onClick }) {
   const dropdownRef = useRef(null)
   const { settings } = useSettings()
 
-  // Close dropdown on outside click
+  // Close dropdown on outside click or ESC
   useEffect(() => {
     if (!dropdownOpen) return
     function handleClick(e) {
@@ -34,8 +34,15 @@ export default function BookCard({ book, criteria, libraryCode, onClick }) {
         setDropdownOpen(false)
       }
     }
+    function handleKeyDown(e) {
+      if (e.key === 'Escape') setDropdownOpen(false)
+    }
     document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', handleClick)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
   }, [dropdownOpen])
 
   const composite = computeComposite(book.ratings, criteria)
