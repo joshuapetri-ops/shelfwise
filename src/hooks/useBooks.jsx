@@ -53,8 +53,12 @@ export function BooksProvider({ children }) {
 
       if (dupeKeys.length > 0) {
         const keysToRemove = new Set(dupeKeys)
+        const mergedData = new Map([...seen.values()].map((b) => [b.key, b]))
         Promise.resolve().then(() => {
-          setBooks((prev) => prev.filter((b) => !keysToRemove.has(b.key)))
+          setBooks((prev) => prev
+            .filter((b) => !keysToRemove.has(b.key))
+            .map((b) => mergedData.has(b.key) ? { ...b, ...mergedData.get(b.key) } : b)
+          )
         })
       }
     }
