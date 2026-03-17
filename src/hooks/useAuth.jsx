@@ -77,7 +77,7 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
-  // Sign out — clear session and reload
+  // Sign out — clear all auth state, storage, and reload
   const signOut = useCallback(async () => {
     try {
       if (session?.revoke) {
@@ -86,15 +86,35 @@ export function AuthProvider({ children }) {
     } catch {
       // Revocation failure is non-fatal
     }
+
+    // Clear React state
     setSession(null)
     setAgent(null)
     setDid(null)
     setHandle(null)
+
+    // Clear the OAuth client's IndexedDB state
     try {
       const client = await getOAuthClient()
       if (client.dispose) await client.dispose()
     } catch { /* ignore */ }
-    window.location.reload()
+
+    // Clear all IndexedDB databases used by @atproto/oauth-client-browser
+    try {
+      const dbs = await indexedDB.databases()
+      for (const db of dbs) {
+        if (db.name) indexedDB.deleteDatabase(db.name)
+      }
+    } catch {
+      // Fallback: delete known DB names
+      indexedDB.deleteDatabase('shelfwise-sync')
+    }
+
+    // Clear localStorage onboarded flag so onboarding shows for next user
+    localStorage.removeItem('shelfwise-onboarded')
+
+    // Reload the page
+    window.location.replace('/')
   }, [session])
 
   const isAuthenticated = !!session && !!agent

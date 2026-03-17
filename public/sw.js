@@ -1,18 +1,11 @@
-const CACHE_NAME = 'shelfwise-v1'
-const STATIC_ASSETS = [
-  '/',
-  '/favicon.svg',
-]
+const CACHE_NAME = 'shelfwise-v2'
 
-// Install: cache static assets
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
-  )
+// Install: immediately activate
+self.addEventListener('install', () => {
   self.skipWaiting()
 })
 
-// Activate: clean old caches
+// Activate: clean old caches and take control
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
@@ -22,34 +15,30 @@ self.addEventListener('activate', (event) => {
   self.clients.claim()
 })
 
-// Fetch: network-first for API calls, cache-first for static assets
+// Fetch: network-first for everything
+// Vite hashes filenames so stale cache is never a concern
 self.addEventListener('fetch', (event) => {
   const { request } = event
-  const url = new URL(request.url)
 
-  // Skip non-GET requests and cross-origin API calls
+  // Skip non-GET and cross-origin
   if (request.method !== 'GET') return
-  if (url.origin !== self.location.origin) return
+  if (!request.url.startsWith(self.location.origin)) return
 
-  // HTML navigation: network-first with offline fallback
-  if (request.mode === 'navigate') {
-    event.respondWith(
-      fetch(request).catch(() => caches.match('/'))
-    )
-    return
-  }
-
-  // Static assets: cache-first
-  if (url.pathname.match(/\.(js|css|svg|png|jpg|woff2?)$/)) {
-    event.respondWith(
-      caches.match(request).then((cached) =>
-        cached || fetch(request).then((response) => {
+  event.respondWith(
+    fetch(request)
+      .then((response) => {
+        // Cache successful responses for offline use
+        if (response.ok) {
           const clone = response.clone()
           caches.open(CACHE_NAME).then((cache) => cache.put(request, clone))
-          return response
-        })
-      )
-    )
-    return
-  }
+        }
+        return response
+      })
+      .catch(() => {
+        // Offline: serve from cache
+        return caches.match(request).then((cached) =>
+          cached || (request.mode === 'navigate' ? caches.match('/') : new Response('', { status: 503 }))
+        )
+      })
+  )
 })
