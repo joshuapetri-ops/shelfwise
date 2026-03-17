@@ -67,6 +67,7 @@ function ExpandableSection({ title, children, books: sectionBooks }) {
 export default function Stats() {
   const { books } = useBooks()
   const [expandedGenre, setExpandedGenre] = useState(null)
+  const [expandedMonth, setExpandedMonth] = useState(null)
 
   const stats = useMemo(() => {
     const now = new Date()
@@ -101,9 +102,22 @@ export default function Stats() {
       const m = getMonth(b.finishedAt) || getMonth(b.addedAt)
       if (m && monthlyCount[m] !== undefined) monthlyCount[m]++
     }
+    // Map month keys to book lists for drill-down
+    const monthlyBooks = {}
+    for (let m = 0; m < 12; m++) {
+      const key = `${thisYear}-${String(m + 1).padStart(2, '0')}`
+      monthlyBooks[key] = []
+    }
+    for (const b of readThisYear) {
+      const m = getMonth(b.finishedAt) || getMonth(b.addedAt)
+      if (m && monthlyBooks[m]) monthlyBooks[m].push(b)
+    }
+
     const monthlyData = Object.entries(monthlyCount).map(([key, count]) => ({
+      key,
       month: MONTH_NAMES[parseInt(key.split('-')[1], 10) - 1],
       count,
+      books: monthlyBooks[key] || [],
     }))
 
     // Most read authors
@@ -241,18 +255,59 @@ export default function Stats() {
         >
           <div className="flex items-end gap-1 h-32">
             {stats.monthlyData.map((d) => (
-              <div key={d.month} className="flex-1 flex flex-col items-center gap-1">
+              <button
+                key={d.key}
+                onClick={() => d.count > 0 && setExpandedMonth(expandedMonth === d.key ? null : d.key)}
+                className="flex-1 flex flex-col items-center gap-1"
+              >
                 <span className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">
                   {d.count > 0 ? d.count : ''}
                 </span>
                 <div
-                  className={`w-full rounded-t transition-all ${d.count > 0 ? 'bg-indigo-500 dark:bg-indigo-400' : 'bg-gray-100 dark:bg-gray-800'}`}
+                  className={`w-full rounded-t transition-all ${
+                    expandedMonth === d.key
+                      ? 'bg-indigo-700 dark:bg-indigo-300'
+                      : d.count > 0
+                        ? 'bg-indigo-500 dark:bg-indigo-400 hover:bg-indigo-600 dark:hover:bg-indigo-300'
+                        : 'bg-gray-100 dark:bg-gray-800'
+                  }`}
                   style={{ height: `${Math.max(2, (d.count / maxMonthly) * 100)}%` }}
                 />
-                <span className="text-[10px] text-gray-400 dark:text-gray-500">{d.month}</span>
-              </div>
+                <span className={`text-[10px] ${expandedMonth === d.key ? 'text-indigo-600 dark:text-indigo-400 font-semibold' : 'text-gray-400 dark:text-gray-500'}`}>
+                  {d.month}
+                </span>
+              </button>
             ))}
           </div>
+
+          {/* Month drill-down */}
+          {expandedMonth && (() => {
+            const monthData = stats.monthlyData.find((d) => d.key === expandedMonth)
+            if (!monthData || monthData.books.length === 0) return null
+            return (
+              <div className="mt-4 border-t border-gray-200 dark:border-gray-700 pt-4">
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                  {monthData.month} {stats.thisYear} — {monthData.books.length} {monthData.books.length === 1 ? 'book' : 'books'}
+                </h3>
+                <div className="space-y-2">
+                  {monthData.books.map((book) => (
+                    <div key={book.key} className="flex items-center gap-3">
+                      <BookCover coverId={book.coverId} isbn={book.isbn} coverUrl={book.coverUrl} title={book.title} size="S" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{book.title}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{book.author}</p>
+                      </div>
+                      {book.ratings?.overall > 0 && (
+                        <span className="text-xs text-amber-600 dark:text-amber-400 shrink-0">
+                          {'★'.repeat(book.ratings?.overall || 0)}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          })()}
         </ExpandableSection>
       </div>
 
