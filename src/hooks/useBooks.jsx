@@ -53,16 +53,23 @@ export function BooksProvider({ children }) {
 
       if (dupeKeys.length > 0) {
         const keysToRemove = new Set(dupeKeys)
+        const dupeBooks = books.filter((b) => keysToRemove.has(b.key))
         const mergedData = new Map([...seen.values()].map((b) => [b.key, b]))
         Promise.resolve().then(() => {
           setBooks((prev) => prev
             .filter((b) => !keysToRemove.has(b.key))
             .map((b) => mergedData.has(b.key) ? { ...b, ...mergedData.get(b.key) } : b)
           )
+          // Also delete duplicate PDS records
+          if (auth?.isAuthenticated && auth.agent && auth.did) {
+            for (const book of dupeBooks) {
+              deleteBook(auth.agent, auth.did, book).catch(() => {})
+            }
+          }
         })
       }
     }
-  }, [books])
+  }, [books, auth])
   const hasSynced = useRef(false)
   const hasEnriched = useRef(false)
 
@@ -82,7 +89,34 @@ export function BooksProvider({ children }) {
         await processSyncQueue(auth.agent, auth.did)
 
         // Fetch books from PDS
-        const pdsBooks = await fetchBooks(auth.agent, auth.did)
+        const rawPdsBooks = await fetchBooks(auth.agent, auth.did)
+
+        // Dedup PDS books by title+author (keep the one with OL key/more data)
+        const pdsSeen = new Map()
+        const pdsToDelete = []
+        for (const book of rawPdsBooks) {
+          const ta = `${(book.title || '').toLowerCase().trim()}|${(book.author || '').toLowerCase().trim()}`
+          if (!ta || ta === '|') { pdsSeen.set(book.key, book); continue }
+          if (pdsSeen.has(ta)) {
+            const existing = pdsSeen.get(ta)
+            const existingScore = (existing.key?.startsWith('/works/') ? 2 : 0) + (existing.coverId ? 1 : 0)
+            const newScore = (book.key?.startsWith('/works/') ? 2 : 0) + (book.coverId ? 1 : 0)
+            if (newScore > existingScore) {
+              pdsToDelete.push(existing)
+              pdsSeen.set(ta, { ...book, ratings: { ...existing.ratings, ...book.ratings }, notes: book.notes || existing.notes })
+            } else {
+              pdsToDelete.push(book)
+            }
+          } else {
+            pdsSeen.set(ta, book)
+          }
+        }
+        const pdsBooks = [...pdsSeen.values()]
+
+        // Delete PDS duplicates in background
+        for (const dupe of pdsToDelete) {
+          deleteBook(auth.agent, auth.did, dupe).catch(() => {})
+        }
 
         let mergedBooks = []
         setBooks((prev) => {

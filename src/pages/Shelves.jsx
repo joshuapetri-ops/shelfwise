@@ -4,7 +4,7 @@ import useBooks from '../hooks/useBooks'
 import useCriteria from '../hooks/useCriteria'
 import useChallenges from '../hooks/useChallenges'
 import BookCard from '../components/BookCard'
-import { BookOpen, ChevronDown } from 'lucide-react'
+import { BookOpen, ChevronDown, Search } from 'lucide-react'
 import { computeComposite } from '../lib/compositeScore'
 
 const SHELF_FILTERS = [
@@ -22,6 +22,7 @@ export default function Shelves({ onBookClick, libraryCode }) {
   const { challenges, getChallengeProgress } = useChallenges()
   const [activeFilter, setActiveFilter] = useState('all')
   const [sortBy, setSortBy] = useState('dateAdded')
+  const [searchQuery, setSearchQuery] = useState('')
 
   const activeChallenge = useMemo(() => {
     const today = new Date().toISOString().split('T')[0]
@@ -37,9 +38,18 @@ export default function Shelves({ onBookClick, libraryCode }) {
   }, [books])
 
   const filteredBooks = useMemo(() => {
-    const base = activeFilter === 'all'
+    let base = activeFilter === 'all'
       ? books
       : books.filter((b) => b.shelf === activeFilter)
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim()
+      base = base.filter((b) =>
+        (b.title || '').toLowerCase().includes(q) ||
+        (b.author || '').toLowerCase().includes(q)
+      )
+    }
 
     const sorted = [...base]
     switch (sortBy) {
@@ -71,7 +81,7 @@ export default function Shelves({ onBookClick, libraryCode }) {
     }
 
     return sorted
-  }, [books, activeFilter, sortBy, criteria])
+  }, [books, activeFilter, sortBy, criteria, searchQuery])
 
   if (books.length === 0) {
     return (
@@ -109,6 +119,32 @@ export default function Shelves({ onBookClick, libraryCode }) {
             />
           </div>
         </Link>
+      )}
+
+      {/* Search */}
+      {books.length > 5 && (
+        <div className="relative mb-4">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search your books..."
+            autoComplete="off"
+            data-1p-ignore="true"
+            data-lpignore="true"
+            data-form-type="other"
+            className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 pl-9 pr-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:border-indigo-400 focus:outline-none"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            >
+              ×
+            </button>
+          )}
+        </div>
       )}
 
       {/* Filter pills */}
