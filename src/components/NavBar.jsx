@@ -3,9 +3,9 @@ import { BookOpen, Search, Users, BarChart3, Settings } from 'lucide-react'
 import clsx from 'clsx'
 
 const TABS = [
-  { to: '/', label: 'Shelves', icon: BookOpen },
-  { to: '/search', label: 'Search', icon: Search },
   { to: '/social', label: 'Social', icon: Users },
+  { to: '/search', label: 'Search', icon: Search },
+  { to: '/shelves', label: 'Shelves', icon: BookOpen },
   { to: '/stats', label: 'Stats', icon: BarChart3 },
   { to: '/settings', label: 'Settings', icon: Settings },
 ]
@@ -14,7 +14,6 @@ export default function NavBar() {
   const { pathname } = useLocation()
 
   function isActive(to) {
-    if (to === '/') return pathname === '/'
     return pathname.startsWith(to)
   }
 

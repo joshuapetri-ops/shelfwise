@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import useBooks from '../hooks/useBooks'
 import BookCover from '../components/ui/BookCover'
-import { computeStreaks } from '../lib/activityLog'
+// Streaks removed from display
 import {
   classifyGenres,
   calcGenreBreakdown,
@@ -13,7 +13,7 @@ import {
   calcYearOverYear,
   GENRE_COLORS,
 } from '../lib/statsCalculations'
-import { BarChart3, BookOpen, Star, Clock, TrendingUp, Flame, Zap, ChevronDown } from 'lucide-react'
+import { BarChart3, BookOpen, Star, Clock, TrendingUp, ChevronDown } from 'lucide-react'
 
 function getYear(dateStr) {
   if (!dateStr) return null
@@ -147,8 +147,6 @@ export default function Stats() {
     const totalPages = calcTotalPages(readBooks)
     const diversityStats = calcDiversityStats(readBooks)
     const yearOverYear = calcYearOverYear(books)
-    const streaks = computeStreaks()
-
     return {
       total: books.length,
       read: readBooks.length,
@@ -170,7 +168,6 @@ export default function Stats() {
       totalPages,
       diversityStats,
       yearOverYear,
-      streaks,
       thisYear,
     }
   }, [books])
@@ -220,32 +217,22 @@ export default function Stats() {
           <p className="text-xs text-gray-500 dark:text-gray-400">Avg Rating</p>
         </div>
         <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 text-center">
-          <Flame className="w-6 h-6 text-orange-500 mx-auto mb-2" />
-          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.streaks.currentStreak}</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400" title="Consecutive days with reading activity">Day Streak</p>
+          <Clock className="w-6 h-6 text-blue-600 dark:text-blue-400 mx-auto mb-2" />
+          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.reading}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Reading Now</p>
         </div>
       </div>
 
-      {/* Reading pace + pages row */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
-        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 text-center">
-          <Clock className="w-5 h-5 text-blue-600 dark:text-blue-400 mx-auto mb-2" />
-          <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
-            {stats.readingPace ? `${stats.readingPace}d` : '—'}
-          </p>
-          <p className="text-xs text-gray-500 dark:text-gray-400" title="Average days between starting and finishing a book">Avg Days/Book</p>
+      {/* Reading pace */}
+      {stats.readingPace && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+          <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 text-center">
+            <Clock className="w-5 h-5 text-blue-600 dark:text-blue-400 mx-auto mb-2" />
+            <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{stats.readingPace}d</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400" title="Average days between starting and finishing a book">Avg Days/Book</p>
+          </div>
         </div>
-        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 text-center">
-          <BookOpen className="w-5 h-5 text-gray-600 dark:text-gray-400 mx-auto mb-2" />
-          <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{stats.reading}</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Reading Now</p>
-        </div>
-        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 text-center">
-          <Zap className="w-5 h-5 text-amber-500 mx-auto mb-2" />
-          <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{stats.streaks.longestStreak}</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400" title="Your longest streak of consecutive active days">Longest Streak</p>
-        </div>
-      </div>
+      )}
 
       {/* Monthly chart */}
       <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6 mb-8">

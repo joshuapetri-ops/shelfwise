@@ -86,7 +86,7 @@ export default function App() {
       <header className="sticky top-0 z-40 bg-white/80 dark:bg-gray-950/80 backdrop-blur border-b border-gray-200 dark:border-gray-800 px-4 py-3 flex items-center justify-between"
         style={{ paddingTop: 'calc(0.75rem + env(safe-area-inset-top, 0px))' }}
       >
-        <Link to="/" className="text-xl font-bold tracking-tight hover:opacity-80 transition-opacity">
+        <Link to="/social" className="text-xl font-bold tracking-tight hover:opacity-80 transition-opacity">
           <span className="text-indigo-600 dark:text-indigo-400">Shelf</span>wise
         </Link>
         <NotificationBell />
@@ -94,8 +94,9 @@ export default function App() {
 
       <main className="max-w-5xl mx-auto">
         <Routes>
+          <Route path="/" element={<Navigate to="/social" replace />} />
           <Route
-            path="/"
+            path="/shelves"
             element={<Shelves onBookClick={openDetail} libraryCode={settings.libraryCode} />}
           />
           <Route path="/search" element={<Search onBookClick={openDetail} />} />
