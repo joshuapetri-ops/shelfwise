@@ -46,55 +46,45 @@ export default function Social({ onBookClick }) {
   const toast = useToast()
   const addToast = toast?.addToast || (() => {})
   const { likeBook, unlikeBook, isLiked } = useLikes()
+  const { follows: shelfwiseFollows, follow, isFollowing, isLoading: isFollowLoading } = useFollow()
   const [activeTab, setActiveTab] = useState('feed')
   const [activeFilter, setActiveFilter] = useState('All')
-  const { follow, isLoading: isFollowLoading } = useFollow()
   const [userSearch, setUserSearch] = useState('')
   const [userResults, setUserResults] = useState([])
   const [searching, setSearching] = useState(false)
-  const [followedDids, setFollowedDids] = useState(new Set())
-  const [myFollows, setMyFollows] = useState([])
-  const [followsLoading, setFollowsLoading] = useState(false)
-  const [recommendBook, setRecommendBook] = useState(null) // book being recommended
+  const [bskySuggestions, setBskySuggestions] = useState([])
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false)
+  const [recommendBook, setRecommendBook] = useState(null)
   const [recommendHandle, setRecommendHandle] = useState('')
 
-  // Load people I follow
+  // Load Bluesky follows as suggestions for Discover tab
+  // Load Bluesky follows as suggestions (only when Discover tab is active)
   useEffect(() => {
-    if (!isAuthenticated || !did) return
+    if (!isAuthenticated || !did || activeTab !== 'discover' || bskySuggestions.length > 0) return
     let cancelled = false
 
-    async function loadFollows() {
-      setFollowsLoading(true)
+    async function loadSuggestions() {
+      setSuggestionsLoading(true)
       try {
-        const allFollows = []
-        let cursor
-
-        do {
-          const data = agent
-            ? (await agent.app.bsky.graph.getFollows({ actor: did, limit: 100, cursor })).data
-            : await (await fetch(`https://public.api.bsky.app/xrpc/app.bsky.graph.getFollows?actor=${encodeURIComponent(did)}&limit=100${cursor ? `&cursor=${cursor}` : ''}`)).json()
-
-          for (const f of data.follows || []) {
-            allFollows.push({
-              did: f.did,
-              handle: f.handle,
-              displayName: f.displayName || f.handle,
-              avatar: f.avatar || null,
-              description: f.description || '',
-            })
-          }
-          cursor = data.cursor
-        } while (cursor && allFollows.length < 500)
+        const data = agent
+          ? (await agent.app.bsky.graph.getFollows({ actor: did, limit: 50 })).data
+          : await (await fetch(`https://public.api.bsky.app/xrpc/app.bsky.graph.getFollows?actor=${encodeURIComponent(did)}&limit=50`)).json()
 
         if (!cancelled) {
-          setMyFollows(allFollows)
+          setBskySuggestions((data.follows || []).map((f) => ({
+            did: f.did,
+            handle: f.handle,
+            displayName: f.displayName || f.handle,
+            avatar: f.avatar || null,
+            description: f.description || '',
+          })))
         }
       } catch { /* ignore */ }
-      finally { if (!cancelled) setFollowsLoading(false) }
+      finally { if (!cancelled) setSuggestionsLoading(false) }
     }
-    loadFollows()
+    loadSuggestions()
     return () => { cancelled = true }
-  }, [isAuthenticated, did, agent])
+  }, [isAuthenticated, did, agent, activeTab, bskySuggestions.length])
 
   // Autocomplete search — debounced
   useEffect(() => {
@@ -476,7 +466,7 @@ export default function Social({ onBookClick }) {
           {userResults.length > 0 && (
             <ul className="space-y-2 mb-6">
               {userResults.map((user) => {
-                const alreadyFollowing = user.isFollowing || followedDids.has(user.did) || myFollows.some((f) => f.did === user.did)
+                const alreadyFollowing = isFollowing(user.did)
                 return (
                   <li key={user.did} className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
                     <Link to={`/profile/${user.handle}`}>
@@ -502,11 +492,9 @@ export default function Social({ onBookClick }) {
                         <Button
                           size="sm"
                           onClick={async () => {
-                            const uri = await follow(user.did)
-                            if (uri) {
-                              setFollowedDids((prev) => new Set([...prev, user.did]))
-                              setMyFollows((prev) => [...prev, user])
-                              addToast(`Now following @${user.handle}`, 'success')
+                            const ok = await follow(user.did, user)
+                            if (ok) {
+                              addToast(`Now following @${user.handle} on Shelfwise`, 'success')
                             }
                           }}
                           disabled={isFollowLoading(user.did)}
@@ -526,16 +514,62 @@ export default function Social({ onBookClick }) {
             </ul>
           )}
 
-          {/* Discovery prompt when not searching */}
+          {/* Bluesky suggestions when not searching */}
           {!userSearch.trim() && (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Compass className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-4" />
-              <p className="text-gray-700 dark:text-gray-300 font-medium mb-1">
-                Discover readers
+            <div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                Shelfwise follows are separate from Bluesky. Follow readers here to see their books in your feed.
               </p>
-              <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm">
-                Search for people you know on Bluesky by name or handle. Follow them to see their reading activity in your feed.
-              </p>
+
+              {suggestionsLoading && (
+                <div className="flex justify-center py-8">
+                  <Loader2 size={20} className="animate-spin text-gray-400" />
+                </div>
+              )}
+
+              {!suggestionsLoading && bskySuggestions.length > 0 && (
+                <>
+                  <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+                    From your Bluesky network
+                  </h3>
+                  <div className="space-y-2">
+                    {bskySuggestions.filter((s) => !isFollowing(s.did)).slice(0, 20).map((user) => (
+                      <div key={user.did} className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+                        <Link to={`/profile/${user.handle}`}>
+                          <Avatar name={user.displayName} src={user.avatar} size="sm" />
+                        </Link>
+                        <Link to={`/profile/${user.handle}`} className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{user.displayName}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">@{user.handle}</p>
+                        </Link>
+                        <Button
+                          size="sm"
+                          onClick={async () => {
+                            const ok = await follow(user.did, user)
+                            if (ok) addToast(`Now following @${user.handle} on Shelfwise`, 'success')
+                          }}
+                          disabled={isFollowLoading(user.did)}
+                        >
+                          {isFollowLoading(user.did) ? <Loader2 className="w-3 h-3 animate-spin" /> : <UserPlus size={14} />}
+                          Follow
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {!suggestionsLoading && bskySuggestions.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <Compass className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-4" />
+                  <p className="text-gray-700 dark:text-gray-300 font-medium mb-1">
+                    Discover readers
+                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm">
+                    Search for people by name or handle above.
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -544,20 +578,14 @@ export default function Social({ onBookClick }) {
       {/* ═══════ FOLLOWING TAB ═══════ */}
       {activeTab === 'following' && (
         <div>
-          {followsLoading && (
-            <div className="flex justify-center py-8">
-              <Loader2 size={20} className="animate-spin text-gray-400" />
-            </div>
-          )}
-
-          {!followsLoading && myFollows.length === 0 && (
+          {shelfwiseFollows.length === 0 && (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <Users className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-4" />
               <p className="text-gray-700 dark:text-gray-300 font-medium mb-1">
-                Not following anyone yet
+                Not following anyone on Shelfwise yet
               </p>
               <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mb-4">
-                Find readers to follow and see what they&apos;re reading.
+                Find readers to follow. Shelfwise follows are separate from your Bluesky follows.
               </p>
               <button
                 onClick={() => setActiveTab('discover')}
@@ -569,13 +597,13 @@ export default function Social({ onBookClick }) {
             </div>
           )}
 
-          {!followsLoading && myFollows.length > 0 && (
+          {shelfwiseFollows.length > 0 && (
             <>
               <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
-                {myFollows.length} following
+                {shelfwiseFollows.length} following on Shelfwise
               </h3>
               <div className="space-y-2">
-                {myFollows.map((user) => (
+                {shelfwiseFollows.map((user) => (
                   <Link
                     key={user.did}
                     to={`/profile/${user.handle}`}
@@ -585,9 +613,6 @@ export default function Social({ onBookClick }) {
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{user.displayName}</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 truncate">@{user.handle}</p>
-                      {user.description && (
-                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 line-clamp-1">{user.description}</p>
-                      )}
                     </div>
                     <span className="text-xs text-indigo-600 dark:text-indigo-400 shrink-0">View</span>
                   </Link>

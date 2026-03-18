@@ -6,6 +6,7 @@ import { AuthProvider } from './hooks/useAuth'
 import { BooksProvider } from './hooks/useBooks'
 import { ChallengesProvider } from './hooks/useChallenges'
 import { CriteriaProvider } from './hooks/useCriteria'
+import { FollowProvider } from './hooks/useFollow'
 import { LikesProvider } from './hooks/useLikes'
 import { NotificationsProvider } from './hooks/useNotifications'
 import { SettingsProvider } from './hooks/useSettings'
@@ -34,13 +35,15 @@ createRoot(document.getElementById('root')).render(
             <CriteriaProvider>
               <BooksProvider>
                 <ChallengesProvider>
-                  <LikesProvider>
-                    <NotificationsProvider>
-                      <ToastProvider>
-                        <App />
-                      </ToastProvider>
-                    </NotificationsProvider>
-                  </LikesProvider>
+                  <FollowProvider>
+                    <LikesProvider>
+                      <NotificationsProvider>
+                        <ToastProvider>
+                          <App />
+                        </ToastProvider>
+                      </NotificationsProvider>
+                    </LikesProvider>
+                  </FollowProvider>
                 </ChallengesProvider>
               </BooksProvider>
             </CriteriaProvider>

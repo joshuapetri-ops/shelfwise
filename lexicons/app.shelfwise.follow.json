@@ -1,0 +1,19 @@
+{
+  "lexicon": 1,
+  "id": "app.shelfwise.follow",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "A Shelfwise-specific follow. Separate from Bluesky follows.",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["subject", "createdAt"],
+        "properties": {
+          "subject": { "type": "string", "description": "DID of the followed user" },
+          "createdAt": { "type": "string", "format": "datetime" }
+        }
+      }
+    }
+  }
+}

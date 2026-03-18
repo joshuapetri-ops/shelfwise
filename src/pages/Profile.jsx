@@ -34,7 +34,7 @@ const SHELF_FILTERS = [
 export default function Profile() {
   const { handle } = useParams()
   const { did: myDid, isAuthenticated, agent } = useAuth()
-  const { follow, unfollow, isLoading: isFollowLoading } = useFollow()
+  const { follow, unfollow, isFollowing, isLoading: isFollowLoading } = useFollow()
   const { addBook, books: myBooks } = useBooks()
   const toast = useToast()
   const addToast = toast?.addToast || (() => {})
@@ -44,7 +44,7 @@ export default function Profile() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [activeFilter, setActiveFilter] = useState('all')
-  const [followUri, setFollowUri] = useState(null) // non-null = following
+  // Follow state comes from FollowProvider
 
   useEffect(() => {
     if (!handle) return
@@ -87,7 +87,7 @@ export default function Profile() {
           followersCount: profileData.followersCount || 0,
           followsCount: profileData.followsCount || 0,
         })
-        setFollowUri(profileData.viewer?.following || null)
+        // Follow state managed by FollowProvider, no local state needed
 
         // Check their privacy preferences
         let isPrivateProfile = false
@@ -142,21 +142,17 @@ export default function Profile() {
 
   const handleFollow = async () => {
     if (!profile) return
-    const uri = await follow(profile.did)
-    if (uri) {
-      setFollowUri(uri)
-      setProfile((prev) => prev ? { ...prev, followersCount: prev.followersCount + 1 } : prev)
-      addToast(`Now following @${profile.handle}`, 'success')
+    const ok = await follow(profile.did, profile)
+    if (ok) {
+      addToast(`Now following @${profile.handle} on Shelfwise`, 'success')
     }
   }
 
   const handleUnfollow = async () => {
-    if (!followUri) return
-    const ok = await unfollow(followUri)
+    if (!profile) return
+    const ok = await unfollow(profile.did)
     if (ok) {
-      setFollowUri(null)
-      setProfile((prev) => prev ? { ...prev, followersCount: Math.max(0, prev.followersCount - 1) } : prev)
-      addToast(`Unfollowed @${profile?.handle}`, 'info')
+      addToast(`Unfollowed @${profile.handle}`, 'info')
     }
   }
 
@@ -198,7 +194,7 @@ export default function Profile() {
     )
   }
 
-  const isFollowing = !!followUri
+  const following = profile ? isFollowing(profile.did) : false
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
@@ -227,13 +223,13 @@ export default function Profile() {
             {/* Follow/Unfollow button */}
             {isAuthenticated && !isMe && (
               <div className="shrink-0">
-                {isFollowing ? (
+                {following ? (
                   <button
                     onClick={handleUnfollow}
-                    disabled={isFollowLoading(followUri)}
+                    disabled={isFollowLoading(profile?.did)}
                     className="group inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-red-300 hover:bg-red-50 hover:text-red-600 dark:hover:border-red-700 dark:hover:bg-red-950 dark:hover:text-red-400 disabled:opacity-50"
                   >
-                    {isFollowLoading(followUri) ? (
+                    {isFollowLoading(profile?.did) ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
                       <>
@@ -305,7 +301,7 @@ export default function Profile() {
                 : `@${profile.handle} hasn't added any books to Shelfwise yet.`
             }
           </p>
-          {!isMe && !isFollowing && isAuthenticated && (
+          {!isMe && !following && isAuthenticated && (
             <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">
               Follow them to see their activity when they join!
             </p>

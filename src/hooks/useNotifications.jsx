@@ -15,10 +15,8 @@ function load() {
 
 /**
  * Notifications provider.
- * Generates notifications from AT Protocol interactions:
- * - New followers
- * - Likes on your books (when backend is available)
- * - Streak milestones
+ * Checks Bluesky notifications for follows, and can be extended
+ * to check Shelfwise-specific interactions.
  */
 export function NotificationsProvider({ children }) {
   const [notifications, setNotifications] = useState(load)
@@ -26,54 +24,66 @@ export function NotificationsProvider({ children }) {
   const hasChecked = useRef(false)
   const notificationsRef = useRef(notifications)
 
-  // Persist and keep ref in sync
+  // Persist and sync ref
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(notifications))
     notificationsRef.current = notifications
   }, [notifications])
 
-  // Check for new followers on auth
+  // Check for new notifications on auth
   useEffect(() => {
     if (!auth?.isAuthenticated || !auth.agent || !auth.did || hasChecked.current) return
     hasChecked.current = true
 
     async function check() {
       try {
-        // Get notification count from Bluesky
-        const res = await auth.agent.app.bsky.notification.getUnreadCount()
-        const count = res.data.count || 0
+        const notifRes = await auth.agent.app.bsky.notification.listNotifications({ limit: 20 })
+        const newNotifs = []
 
-        if (count > 0) {
-          // Fetch recent notifications
-          const notifRes = await auth.agent.app.bsky.notification.listNotifications({ limit: 20 })
-          const newNotifs = []
+        for (const n of notifRes.data.notifications || []) {
+          const id = `${n.reason}-${n.author.did}-${n.indexedAt}`
+          if (notificationsRef.current.some((existing) => existing.id === id)) continue
 
-          for (const n of notifRes.data.notifications || []) {
-            const id = `${n.reason}-${n.author.did}-${n.indexedAt}`
-            // Skip if already seen
-            if (notificationsRef.current.some((existing) => existing.id === id)) continue
-
-            if (n.reason === 'follow') {
-              newNotifs.push({
-                id,
-                type: 'follow',
-                message: `${n.author.displayName || n.author.handle} started following you`,
-                handle: n.author.handle,
-                avatar: n.author.avatar || null,
-                timestamp: n.indexedAt,
-                read: false,
-              })
-            }
+          if (n.reason === 'follow') {
+            newNotifs.push({
+              id,
+              type: 'follow',
+              message: `${n.author.displayName || n.author.handle} started following you`,
+              handle: n.author.handle,
+              avatar: n.author.avatar || null,
+              timestamp: n.indexedAt,
+              read: false,
+            })
+          } else if (n.reason === 'like') {
+            newNotifs.push({
+              id,
+              type: 'like',
+              message: `${n.author.displayName || n.author.handle} liked your post`,
+              handle: n.author.handle,
+              avatar: n.author.avatar || null,
+              timestamp: n.indexedAt,
+              read: false,
+            })
           }
+        }
 
-          if (newNotifs.length > 0) {
-            setNotifications((prev) => [...newNotifs, ...prev].slice(0, 50)) // keep last 50
-          }
+        if (newNotifs.length > 0) {
+          setNotifications((prev) => [...newNotifs, ...prev].slice(0, 50))
         }
       } catch { /* non-fatal */ }
     }
     check()
   }, [auth])
+
+  /**
+   * Add a local notification (e.g., streak milestones, likes from Shelfwise).
+   */
+  const addNotification = useCallback((notification) => {
+    setNotifications((prev) => {
+      if (prev.some((n) => n.id === notification.id)) return prev
+      return [notification, ...prev].slice(0, 50)
+    })
+  }, [])
 
   const unreadCount = notifications.filter((n) => !n.read).length
 
@@ -92,7 +102,7 @@ export function NotificationsProvider({ children }) {
   }, [])
 
   return (
-    <NotificationsContext.Provider value={{ notifications, unreadCount, markRead, markAllRead, clearAll }}>
+    <NotificationsContext.Provider value={{ notifications, unreadCount, addNotification, markRead, markAllRead, clearAll }}>
       {children}
     </NotificationsContext.Provider>
   )

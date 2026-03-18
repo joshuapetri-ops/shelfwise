@@ -1,37 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import useAuth from './useAuth'
+import useFollow from './useFollow'
 
 const BSKY_API = 'https://public.api.bsky.app/xrpc'
 const BOOK_COLLECTION = 'app.shelfwise.book'
 
-/**
- * Fetch the user's follows from the Bluesky API.
- */
-async function fetchFollows(did) {
-  const follows = []
-  let cursor
 
-  do {
-    const params = new URLSearchParams({ actor: did, limit: '100' })
-    if (cursor) params.append('cursor', cursor)
-
-    const res = await fetch(`${BSKY_API}/app.bsky.graph.getFollows?${params}`)
-    if (!res.ok) break
-
-    const data = await res.json()
-    for (const f of data.follows || []) {
-      follows.push({
-        did: f.did,
-        handle: f.handle,
-        displayName: f.displayName || f.handle,
-        avatar: f.avatar || null,
-      })
-    }
-    cursor = data.cursor
-  } while (cursor && follows.length < 500)
-
-  return follows
-}
 
 /**
  * Fetch shelfwise book records from a user's PDS.
@@ -109,6 +83,7 @@ function formatTimeAgo(date) {
  */
 export default function useSocialFeed() {
   const { isAuthenticated, did, handle } = useAuth()
+  const followCtx = useFollow()
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -120,9 +95,9 @@ export default function useSocialFeed() {
     setError(null)
 
     try {
-      // Get who the user follows (exclude self to avoid double-counting)
-      const allFollows = await fetchFollows(did)
-      const follows = allFollows.filter((f) => f.did !== did)
+      // Use Shelfwise follows (not Bluesky follows)
+      const shelfwiseFollows = followCtx?.follows || []
+      const follows = shelfwiseFollows.filter((f) => f.did !== did)
 
       // Fetch shelfwise books from each followed user (in parallel, max 10 at a time)
       const allEvents = []
@@ -164,7 +139,7 @@ export default function useSocialFeed() {
     } finally {
       setLoading(false)
     }
-  }, [isAuthenticated, did, handle])
+  }, [isAuthenticated, did, handle, followCtx?.follows])
 
   useEffect(() => {
     fetchFeed()

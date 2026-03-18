@@ -1,34 +1,126 @@
-import { useState, useCallback } from 'react'
+/* eslint-disable react-refresh/only-export-components */
+import { useState, useEffect, useCallback, useRef, createContext, useContext } from 'react'
 import useAuth from './useAuth'
 
+const FOLLOW_COLLECTION = 'app.shelfwise.follow'
+const STORAGE_KEY = 'shelfwise-follows'
+const FollowContext = createContext()
+
+function loadFollows() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY)) ?? []
+  } catch {
+    return []
+  }
+}
+
 /**
- * Hook for following/unfollowing AT Protocol users.
- * Returns { follow, unfollow, isFollowLoading } plus a helper
- * to check follow state from a profile's viewer object.
+ * Shelfwise-specific follow system.
+ * Separate from Bluesky follows — following someone on Shelfwise
+ * does NOT follow them on Bluesky.
  */
-export default function useFollow() {
-  const { agent, did, isAuthenticated } = useAuth()
+export function FollowProvider({ children }) {
+  const [follows, setFollows] = useState(loadFollows) // [{ did, handle, displayName, avatar, rkey }]
   const [loadingDids, setLoadingDids] = useState(new Set())
+  const auth = useAuth()
+  const hasSynced = useRef(false)
 
-  const isLoading = useCallback((targetDid) => loadingDids.has(targetDid), [loadingDids])
+  // Persist to localStorage
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(follows))
+  }, [follows])
 
-  const follow = useCallback(async (targetDid) => {
-    if (!isAuthenticated || !agent || !did || !targetDid) return null
+  // Sync from PDS on auth
+  useEffect(() => {
+    if (!auth?.isAuthenticated || !auth.agent || !auth.did || hasSynced.current) return
+    hasSynced.current = true
+
+    async function sync() {
+      try {
+        const res = await auth.agent.com.atproto.repo.listRecords({
+          repo: auth.did,
+          collection: FOLLOW_COLLECTION,
+          limit: 100,
+        })
+
+        // Get all follow records, then resolve profiles
+        const records = res.data.records || []
+        if (records.length === 0) return
+
+        const pdsFollows = []
+        // Batch resolve profiles
+        for (const r of records) {
+          const subjectDid = r.value.subject
+          const rkey = r.uri.split('/').pop()
+          try {
+            const profileRes = await fetch(
+              `https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(subjectDid)}`
+            )
+            if (profileRes.ok) {
+              const p = await profileRes.json()
+              pdsFollows.push({
+                did: subjectDid,
+                handle: p.handle,
+                displayName: p.displayName || p.handle,
+                avatar: p.avatar || null,
+                rkey,
+              })
+            }
+          } catch { /* skip unresolvable */ }
+        }
+
+        setFollows(pdsFollows)
+      } catch { /* non-fatal */ }
+    }
+    sync()
+  }, [auth])
+
+  const isFollowing = useCallback(
+    (targetDid) => follows.some((f) => f.did === targetDid),
+    [follows],
+  )
+
+  const isLoading = useCallback(
+    (targetDid) => loadingDids.has(targetDid),
+    [loadingDids],
+  )
+
+  const follow = useCallback(async (targetDid, profile) => {
+    if (!auth?.isAuthenticated || !auth.agent || !auth.did || !targetDid) return false
+    if (follows.some((f) => f.did === targetDid)) return true // already following
 
     setLoadingDids((prev) => new Set([...prev, targetDid]))
+
+    const followData = {
+      did: targetDid,
+      handle: profile?.handle || targetDid,
+      displayName: profile?.displayName || profile?.handle || targetDid,
+      avatar: profile?.avatar || null,
+      rkey: null,
+    }
+
+    // Optimistic update
+    setFollows((prev) => [...prev, followData])
+
     try {
-      const res = await agent.com.atproto.repo.createRecord({
-        repo: did,
-        collection: 'app.bsky.graph.follow',
+      const res = await auth.agent.com.atproto.repo.createRecord({
+        repo: auth.did,
+        collection: FOLLOW_COLLECTION,
         record: {
-          $type: 'app.bsky.graph.follow',
+          $type: FOLLOW_COLLECTION,
           subject: targetDid,
           createdAt: new Date().toISOString(),
         },
       })
-      return res.data.uri // the follow record URI, needed for unfollow
+      const rkey = res.data.uri.split('/').pop()
+      setFollows((prev) =>
+        prev.map((f) => f.did === targetDid ? { ...f, rkey } : f)
+      )
+      return true
     } catch {
-      return null
+      // Revert optimistic update
+      setFollows((prev) => prev.filter((f) => f.did !== targetDid))
+      return false
     } finally {
       setLoadingDids((prev) => {
         const next = new Set(prev)
@@ -36,35 +128,48 @@ export default function useFollow() {
         return next
       })
     }
-  }, [agent, did, isAuthenticated])
+  }, [auth, follows])
 
-  const unfollow = useCallback(async (followUri) => {
-    if (!isAuthenticated || !agent || !did || !followUri) return false
+  const unfollow = useCallback(async (targetDid) => {
+    if (!auth?.isAuthenticated || !auth.agent || !auth.did) return false
 
-    // Extract rkey and subject DID from the follow URI
-    const parts = followUri.split('/')
-    const rkey = parts[parts.length - 1]
+    const existing = follows.find((f) => f.did === targetDid)
+    if (!existing) return false
 
-    // Use the URI as loading key (matches what Profile passes to isFollowLoading)
-    const loadingKey = followUri
-    setLoadingDids((prev) => new Set([...prev, loadingKey]))
+    setLoadingDids((prev) => new Set([...prev, targetDid]))
+
+    // Optimistic update
+    setFollows((prev) => prev.filter((f) => f.did !== targetDid))
+
     try {
-      await agent.com.atproto.repo.deleteRecord({
-        repo: did,
-        collection: 'app.bsky.graph.follow',
-        rkey,
-      })
+      if (existing.rkey) {
+        await auth.agent.com.atproto.repo.deleteRecord({
+          repo: auth.did,
+          collection: FOLLOW_COLLECTION,
+          rkey: existing.rkey,
+        })
+      }
       return true
     } catch {
+      // Revert
+      setFollows((prev) => [...prev, existing])
       return false
     } finally {
       setLoadingDids((prev) => {
         const next = new Set(prev)
-        next.delete(loadingKey)
+        next.delete(targetDid)
         return next
       })
     }
-  }, [agent, did, isAuthenticated])
+  }, [auth, follows])
 
-  return { follow, unfollow, isLoading, isAuthenticated }
+  return (
+    <FollowContext.Provider value={{ follows, follow, unfollow, isFollowing, isLoading }}>
+      {children}
+    </FollowContext.Provider>
+  )
+}
+
+export default function useFollow() {
+  return useContext(FollowContext)
 }
