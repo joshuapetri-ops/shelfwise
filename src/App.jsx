@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import { Routes, Route, Navigate, Link } from 'react-router-dom'
 import NavBar from './components/NavBar'
+import NotificationBell from './components/NotificationBell'
 import BookDetail from './components/BookDetail'
 import Shelves from './pages/Shelves'
 import Search from './pages/Search'
@@ -82,12 +83,13 @@ export default function App() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100" data-1p-ignore
       style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom, 0px))' }}
     >
-      <header className="sticky top-0 z-40 bg-white/80 dark:bg-gray-950/80 backdrop-blur border-b border-gray-200 dark:border-gray-800 px-4 py-3"
+      <header className="sticky top-0 z-40 bg-white/80 dark:bg-gray-950/80 backdrop-blur border-b border-gray-200 dark:border-gray-800 px-4 py-3 flex items-center justify-between"
         style={{ paddingTop: 'calc(0.75rem + env(safe-area-inset-top, 0px))' }}
       >
         <Link to="/" className="text-xl font-bold tracking-tight hover:opacity-80 transition-opacity">
           <span className="text-indigo-600 dark:text-indigo-400">Shelf</span>wise
         </Link>
+        <NotificationBell />
       </header>
 
       <main className="max-w-5xl mx-auto">
@@ -97,7 +99,7 @@ export default function App() {
             element={<Shelves onBookClick={openDetail} libraryCode={settings.libraryCode} />}
           />
           <Route path="/search" element={<Search onBookClick={openDetail} />} />
-          <Route path="/social" element={<Social />} />
+          <Route path="/social" element={<Social onBookClick={openDetail} />} />
           <Route path="/profile/:handle" element={<Profile />} />
           <Route path="/challenges" element={<Challenges />} />
           <Route path="/for-you" element={<ForYou />} />

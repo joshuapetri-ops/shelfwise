@@ -39,7 +39,7 @@ const SOCIAL_TABS = [
   { key: 'following', label: 'Following', icon: Users },
 ]
 
-export default function Social() {
+export default function Social({ onBookClick }) {
   const { books, addBook } = useBooks()
   const { isAuthenticated, did, agent } = useAuth()
   const { events: liveEvents, loading: feedLoading, isLive } = useSocialFeed()
@@ -305,18 +305,22 @@ export default function Social() {
                   {/* Book info */}
                   {item.book && (
                     <div className="flex items-start gap-3">
-                      <BookCover
-                        coverId={item.book.coverId}
-                        title={item.book.title}
-                        size="S"
-                      />
+                      <button onClick={() => onBookClick?.(item.book)} className="shrink-0">
+                        <BookCover
+                          coverId={item.book.coverId}
+                          title={item.book.title}
+                          size="S"
+                        />
+                      </button>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 line-clamp-1">
-                          {item.book.title}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {item.book.author}
-                        </p>
+                        <button onClick={() => onBookClick?.(item.book)} className="text-left">
+                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 line-clamp-1 hover:underline">
+                            {item.book.title}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {item.book.author}
+                          </p>
+                        </button>
                         {/* Shelf status */}
                         <div className="mt-2 flex items-center gap-2 flex-wrap">
                           {existing ? (
