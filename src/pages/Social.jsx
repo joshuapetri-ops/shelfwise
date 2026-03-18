@@ -66,18 +66,28 @@ export default function Social({ onBookClick }) {
     async function loadFollows() {
       setFollowsLoading(true)
       try {
-        const data = agent
-          ? (await agent.app.bsky.graph.getFollows({ actor: did, limit: 50 })).data
-          : await (await fetch(`https://public.api.bsky.app/xrpc/app.bsky.graph.getFollows?actor=${encodeURIComponent(did)}&limit=50`)).json()
+        const allFollows = []
+        let cursor
+
+        do {
+          const data = agent
+            ? (await agent.app.bsky.graph.getFollows({ actor: did, limit: 100, cursor })).data
+            : await (await fetch(`https://public.api.bsky.app/xrpc/app.bsky.graph.getFollows?actor=${encodeURIComponent(did)}&limit=100${cursor ? `&cursor=${cursor}` : ''}`)).json()
+
+          for (const f of data.follows || []) {
+            allFollows.push({
+              did: f.did,
+              handle: f.handle,
+              displayName: f.displayName || f.handle,
+              avatar: f.avatar || null,
+              description: f.description || '',
+            })
+          }
+          cursor = data.cursor
+        } while (cursor && allFollows.length < 500)
 
         if (!cancelled) {
-          setMyFollows((data.follows || []).map((f) => ({
-            did: f.did,
-            handle: f.handle,
-            displayName: f.displayName || f.handle,
-            avatar: f.avatar || null,
-            description: f.description || '',
-          })))
+          setMyFollows(allFollows)
         }
       } catch { /* ignore */ }
       finally { if (!cancelled) setFollowsLoading(false) }

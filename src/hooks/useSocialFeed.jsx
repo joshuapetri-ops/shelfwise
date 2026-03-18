@@ -28,7 +28,7 @@ async function fetchFollows(did) {
       })
     }
     cursor = data.cursor
-  } while (cursor && follows.length < 200)
+  } while (cursor && follows.length < 500)
 
   return follows
 }
