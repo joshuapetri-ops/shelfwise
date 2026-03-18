@@ -84,7 +84,7 @@ export default function ForYou() {
       </p>
 
       {/* Custom prompt input */}
-      <form onSubmit={(e) => { e.preventDefault(); handleGetRecommendations() }} className="mb-8">
+      <form onSubmit={(e) => { e.preventDefault(); document.activeElement?.blur(); handleGetRecommendations() }} className="mb-8">
         <div className="mb-4">
           <input
             type="text"

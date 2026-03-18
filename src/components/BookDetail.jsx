@@ -117,6 +117,7 @@ export default function BookDetail({ book, isOpen, onClose, onUpdate, onRemove, 
   function handleTagKeyDown(e) {
     if (e.key === 'Enter') {
       e.preventDefault();
+      e.target.blur();
       handleAddTag();
     }
   }

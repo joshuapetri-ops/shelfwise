@@ -126,7 +126,7 @@ function StepAccount({ data, onChange }) {
         Enter your handle to connect your identity. You&apos;ll be redirected to your PDS to authorize Shelfwise.
       </p>
 
-      <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSignIn(); }} autoComplete="off">
+      <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); document.activeElement?.blur(); handleSignIn(); }} autoComplete="off">
         <div>
           <label htmlFor="handle" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Handle</label>
           <input

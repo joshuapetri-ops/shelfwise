@@ -409,6 +409,7 @@ export default function Social({ onBookClick }) {
                               className="flex-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2.5 py-1.5 text-xs text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:border-indigo-400 focus:outline-none"
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter' && recommendHandle.trim()) {
+                                  e.target.blur()
                                   handleRecommend(item.book, recommendHandle.trim())
                                 }
                                 if (e.key === 'Escape') {

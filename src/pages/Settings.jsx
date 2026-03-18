@@ -577,7 +577,7 @@ export default function Settings({ onLogout }) {
                   data-lpignore="true"
                   data-form-type="other"
                   className="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                  onKeyDown={(e) => e.key === 'Enter' && handleAddCriterion()}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.target.blur(); handleAddCriterion() } }}
                 />
               </div>
               <div>
@@ -688,7 +688,7 @@ export default function Settings({ onLogout }) {
                     data-lpignore="true"
                     data-form-type="other"
                     className="flex-1 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                    onKeyDown={(e) => e.key === 'Enter' && handlePreviewCriteria()}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.target.blur(); handlePreviewCriteria() } }}
                   />
                   <Button size="sm" onClick={handlePreviewCriteria}>
                     <Upload size={16} />

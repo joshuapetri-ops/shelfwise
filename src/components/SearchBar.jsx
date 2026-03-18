@@ -45,6 +45,7 @@ export default function SearchBar({ onSearch, onSelect, language }) {
   function handleSelect(item) {
     setQuery(item.title ?? '')
     setOpen(false)
+    inputRef.current?.blur()
     onSelect?.(item)
   }
 

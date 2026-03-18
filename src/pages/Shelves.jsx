@@ -160,6 +160,7 @@ export default function Shelves({ onBookClick, libraryCode }) {
                   key={book.key}
                   onMouseDown={(e) => {
                     e.preventDefault()
+                    document.activeElement?.blur()
                     onBookClick?.(book)
                     setSearchQuery('')
                   }}
