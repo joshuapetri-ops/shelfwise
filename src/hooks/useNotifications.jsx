@@ -1,8 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
-import { useState, useEffect, useCallback, useRef, createContext, useContext } from 'react'
-import useAuth from './useAuth'
+import { useState, useEffect, useCallback, createContext, useContext } from 'react'
 
-const STORAGE_KEY = 'shelfwise-notifications'
+const STORAGE_KEY = 'shelfwise-notifications-v2'
 const NotificationsContext = createContext()
 
 function load() {
@@ -15,73 +14,25 @@ function load() {
 
 /**
  * Notifications provider.
- * Checks Bluesky notifications for follows, and can be extended
- * to check Shelfwise-specific interactions.
+ * Only shows Shelfwise-specific notifications — NOT Bluesky notifications.
+ * Notifications are generated locally via addNotification() from other hooks/components.
  */
 export function NotificationsProvider({ children }) {
   const [notifications, setNotifications] = useState(load)
-  const auth = useAuth()
-  const hasChecked = useRef(false)
-  const notificationsRef = useRef(notifications)
 
-  // Persist and sync ref
+  // Persist
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(notifications))
-    notificationsRef.current = notifications
   }, [notifications])
 
-  // Check for new notifications on auth
-  useEffect(() => {
-    if (!auth?.isAuthenticated || !auth.agent || !auth.did || hasChecked.current) return
-    hasChecked.current = true
-
-    async function check() {
-      try {
-        const notifRes = await auth.agent.app.bsky.notification.listNotifications({ limit: 20 })
-        const newNotifs = []
-
-        for (const n of notifRes.data.notifications || []) {
-          const id = `${n.reason}-${n.author.did}-${n.indexedAt}`
-          if (notificationsRef.current.some((existing) => existing.id === id)) continue
-
-          if (n.reason === 'follow') {
-            newNotifs.push({
-              id,
-              type: 'follow',
-              message: `${n.author.displayName || n.author.handle} started following you`,
-              handle: n.author.handle,
-              avatar: n.author.avatar || null,
-              timestamp: n.indexedAt,
-              read: false,
-            })
-          } else if (n.reason === 'like') {
-            newNotifs.push({
-              id,
-              type: 'like',
-              message: `${n.author.displayName || n.author.handle} liked your post`,
-              handle: n.author.handle,
-              avatar: n.author.avatar || null,
-              timestamp: n.indexedAt,
-              read: false,
-            })
-          }
-        }
-
-        if (newNotifs.length > 0) {
-          setNotifications((prev) => [...newNotifs, ...prev].slice(0, 50))
-        }
-      } catch { /* non-fatal */ }
-    }
-    check()
-  }, [auth])
-
   /**
-   * Add a local notification (e.g., streak milestones, likes from Shelfwise).
+   * Add a Shelfwise notification.
+   * Used by other hooks to report events (challenge completion, etc).
    */
   const addNotification = useCallback((notification) => {
     setNotifications((prev) => {
       if (prev.some((n) => n.id === notification.id)) return prev
-      return [notification, ...prev].slice(0, 50)
+      return [{ ...notification, read: false, timestamp: notification.timestamp || new Date().toISOString() }, ...prev].slice(0, 50)
     })
   }, [])
 
