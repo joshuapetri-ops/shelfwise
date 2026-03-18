@@ -34,14 +34,17 @@ export function FriendsBooksProvider({ children }) {
   const [loading, setLoading] = useState(false)
   const { isAuthenticated, did } = useAuth()
   const followCtx = useFollow()
-  const hasFetched = useRef(false)
+  const hasFetched = useRef('')
 
   // Fetch books from all followed users
   useEffect(() => {
     const follows = followCtx?.follows || []
-    if (!isAuthenticated || !did || follows.length === 0 || hasFetched.current) return
+    if (!isAuthenticated || !did || follows.length === 0) return
 
-    hasFetched.current = true
+    // Only re-fetch if follows count changed (user followed someone new)
+    const followsKey = follows.map((f) => f.did).sort().join(',')
+    if (hasFetched.current === followsKey) return
+    hasFetched.current = followsKey
     let cancelled = false
 
     async function fetchAll() {

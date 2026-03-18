@@ -36,11 +36,12 @@ function toFeedEvent(user, bookRecord) {
   if (!record) return null
 
   const shelf = record.shelf
+  const isYou = user.displayName === 'You'
 
   let action = ''
   if (shelf === 'read') action = 'finished'
   else if (shelf === 'reading') action = 'started reading'
-  else if (shelf === 'wantToRead') action = 'wants to read'
+  else if (shelf === 'wantToRead') action = isYou ? 'want to read' : 'wants to read'
   else if (shelf === 'dnf') action = "couldn't finish"
   else action = 'added a book'
 

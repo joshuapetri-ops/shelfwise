@@ -38,6 +38,7 @@ export default function SearchBar({ onSearch, onSelect, language }) {
   function handleSubmit(e) {
     e?.preventDefault()
     setOpen(false)
+    inputRef.current?.blur() // dismiss keyboard on mobile
     onSearch?.(query)
   }
 

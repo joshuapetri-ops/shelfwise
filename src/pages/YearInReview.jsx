@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import { useState, useMemo, useRef, useCallback } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import useBooks from '../hooks/useBooks'
 import BookCover from '../components/ui/BookCover'
 import {
@@ -21,6 +21,7 @@ const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Se
 
 export default function YearInReview() {
   const { books } = useBooks()
+  const navigate = useNavigate()
   const [year, setYear] = useState(new Date().getFullYear())
   const [slide, setSlide] = useState(0)
 
@@ -90,6 +91,28 @@ export default function YearInReview() {
     }
     return [...ys].sort((a, b) => b - a)
   }, [books])
+
+  // Swipe refs and handlers (must be before any early returns)
+  const touchStartX = useRef(0)
+  const touchStartY = useRef(0)
+  // These are used in navigation buttons below (recalculated after slides are built)
+
+  const handleTouchStart = useCallback((e) => {
+    touchStartX.current = e.touches[0].clientX
+    touchStartY.current = e.touches[0].clientY
+  }, [])
+
+  const handleTouchEnd = useCallback((e) => {
+    const deltaX = e.changedTouches[0].clientX - touchStartX.current
+    const deltaY = e.changedTouches[0].clientY - touchStartY.current
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+      if (deltaX < 0) setSlide((s) => s + 1)
+      if (deltaX > 0) setSlide((s) => Math.max(0, s - 1))
+    }
+    if (deltaY > 120 && Math.abs(deltaY) > Math.abs(deltaX)) {
+      navigate('/stats')
+    }
+  }, [navigate])
 
   if (!data) {
     return (
@@ -240,9 +263,9 @@ export default function YearInReview() {
   ]
 
   const totalSlides = slides.length
-  const SlideContent = slides[slide]
-  const canGoBack = slide > 0
-  const canGoForward = slide < totalSlides - 1
+  const SlideContent = slides[Math.min(slide, totalSlides - 1)]
+  const slideCanGoBack = slide > 0
+  const slideCanGoForward = slide < totalSlides - 1
 
   return (
     <div className="max-w-lg mx-auto px-4 py-8 min-h-screen flex flex-col">
@@ -275,8 +298,12 @@ export default function YearInReview() {
         ))}
       </div>
 
-      {/* Slide content */}
-      <div className="flex-1">
+      {/* Slide content (swipeable) */}
+      <div
+        className="flex-1"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         <SlideContent />
       </div>
 
@@ -284,7 +311,7 @@ export default function YearInReview() {
       <div className="flex justify-between items-center py-4">
         <button
           onClick={() => setSlide((s) => Math.max(0, s - 1))}
-          disabled={!canGoBack}
+          disabled={!slideCanGoBack}
           className="inline-flex items-center gap-1 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 disabled:opacity-30 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
         >
           <ArrowLeft size={16} /> Back
@@ -292,7 +319,7 @@ export default function YearInReview() {
         <span className="text-xs text-gray-400 dark:text-gray-500">{slide + 1} / {totalSlides}</span>
         <button
           onClick={() => setSlide((s) => Math.min(totalSlides - 1, s + 1))}
-          disabled={!canGoForward}
+          disabled={!slideCanGoForward}
           className="inline-flex items-center gap-1 px-4 py-2 text-sm font-medium text-indigo-600 dark:text-indigo-400 disabled:opacity-30 hover:bg-indigo-50 dark:hover:bg-indigo-950 rounded-lg transition-colors"
         >
           Next <ArrowRight size={16} />
