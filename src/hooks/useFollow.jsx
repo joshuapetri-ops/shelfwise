@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { useState, useEffect, useCallback, useRef, createContext, useContext } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef, createContext, useContext } from 'react'
 import useAuth from './useAuth'
 
 const FOLLOW_COLLECTION = 'app.shelfwise.follow'
@@ -164,7 +164,7 @@ export function FollowProvider({ children }) {
   }, [auth, follows])
 
   return (
-    <FollowContext.Provider value={{ follows, follow, unfollow, isFollowing, isLoading }}>
+    <FollowContext.Provider value={useMemo(() => ({ follows, follow, unfollow, isFollowing, isLoading }), [follows, follow, unfollow, isFollowing, isLoading])}>
       {children}
     </FollowContext.Provider>
   )

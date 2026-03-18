@@ -70,10 +70,10 @@ export function FriendsBooksProvider({ children }) {
                 let ratings = {}
                 if (record.ratings) {
                   try {
-                    ratings = typeof record.ratings === 'string' && record.ratings.trim().length > 1
+                    ratings = typeof record.ratings === 'string' && record.ratings.trim()
                       ? JSON.parse(record.ratings)
-                      : record.ratings
-                  } catch { /* ignore */ }
+                      : (record.ratings || {})
+                  } catch { ratings = {} }
                 }
 
                 if (!bookMap[key]) bookMap[key] = []
