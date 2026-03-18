@@ -13,6 +13,8 @@ import useChallenges from '../hooks/useChallenges';
 import { deleteBook as pdsDeleteBook, writeBook as pdsWriteBook } from '../lib/pdsSync';
 import useToast from './Toast';
 import useLikes from '../hooks/useLikes';
+import useFriendsBooks from '../hooks/useFriendsBooks';
+import Avatar from './ui/Avatar';
 import { ExternalLink, Trash2, Plus, Share2, Lock, Send, Heart } from 'lucide-react';
 
 const SHELVES = [
@@ -32,6 +34,8 @@ export default function BookDetail({ book, isOpen, onClose, onUpdate, onRemove, 
   const toastCtx = useToast();
   const addToast = toastCtx?.addToast || (() => {});
   const likesCtx = useLikes();
+  const friendsBooksCtx = useFriendsBooks();
+  const bookFriends = friendsBooksCtx?.getFriendsForBook?.(book.title, book.author) || [];
   const { likeBook, unlikeBook, isLiked } = likesCtx || {};
   const bookLikeKey = `${(book.title || '').toLowerCase()}|${(book.author || '').toLowerCase()}`;
   const bookIsLiked = isLiked?.(bookLikeKey) ?? false;
@@ -224,6 +228,31 @@ export default function BookDetail({ book, isOpen, onClose, onUpdate, onRemove, 
                   />
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* ── Friends who read this ── */}
+        {bookFriends.length > 0 && (
+          <div>
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+              Friends who read this
+            </h3>
+            <div className="space-y-2">
+              {bookFriends.map((f) => (
+                <div key={f.did} className="flex items-center gap-3">
+                  <Avatar name={f.displayName} src={f.avatar} size="sm" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{f.displayName}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">@{f.handle}</p>
+                  </div>
+                  {f.rating && (
+                    <span className="text-xs text-amber-500 shrink-0">
+                      {'★'.repeat(f.rating)}
+                    </span>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         )}

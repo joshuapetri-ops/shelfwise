@@ -6,7 +6,9 @@ import { searchBooks } from '../api/openLibrary'
 import useBooks from '../hooks/useBooks'
 import useSettings from '../hooks/useSettings'
 import useToast from '../components/Toast'
-import { Search as SearchIcon, Check, Share2 } from 'lucide-react'
+import useFriendsBooks from '../hooks/useFriendsBooks'
+import Avatar from '../components/ui/Avatar'
+import { Search as SearchIcon, Check, Share2, Users } from 'lucide-react'
 
 const SHELF_LABELS = {
   wantToRead: 'Want to Read',
@@ -29,6 +31,8 @@ export default function Search({ onBookClick }) {
   const { settings } = useSettings()
   const toast = useToast()
   const addToast = toast?.addToast || (() => {})
+  const friendsBooksCtx = useFriendsBooks()
+  const getFriendsForBook = friendsBooksCtx?.getFriendsForBook || (() => [])
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(false)
   const [loadingMessage, setLoadingMessage] = useState(null)
@@ -163,6 +167,22 @@ export default function Search({ onBookClick }) {
                         {book.year}
                       </p>
                     )}
+                    {(() => {
+                      const friends = getFriendsForBook(book.title, book.author)
+                      if (friends.length === 0) return null
+                      return (
+                        <div className="mt-1.5 flex items-center justify-center gap-1">
+                          <div className="flex -space-x-1.5">
+                            {friends.slice(0, 3).map((f) => (
+                              <Avatar key={f.did} name={f.displayName} src={f.avatar} size="sm" />
+                            ))}
+                          </div>
+                          <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">
+                            {friends.length} {friends.length === 1 ? 'friend' : 'friends'}
+                          </span>
+                        </div>
+                      )
+                    })()}
                   </div>
                 </div>
 
