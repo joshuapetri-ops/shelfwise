@@ -9,7 +9,8 @@ import useBooks from '../hooks/useBooks'
 import useAuth from '../hooks/useAuth'
 import useFollow from '../hooks/useFollow'
 import useSocialFeed from '../hooks/useSocialFeed'
-import { Users, BookOpen, Loader2, Search, UserPlus, UserCheck, Rss, Compass, Share2, Send } from 'lucide-react'
+import useLikes from '../hooks/useLikes'
+import { Users, BookOpen, Loader2, Search, UserPlus, UserCheck, Rss, Compass, Share2, Send, Heart, MessageCircle } from 'lucide-react'
 
 const FILTERS = [
   { label: 'All', match: null },
@@ -44,6 +45,7 @@ export default function Social() {
   const { events: liveEvents, loading: feedLoading, isLive } = useSocialFeed()
   const toast = useToast()
   const addToast = toast?.addToast || (() => {})
+  const { likeBook, unlikeBook, isLiked } = useLikes()
   const [activeTab, setActiveTab] = useState('feed')
   const [activeFilter, setActiveFilter] = useState('All')
   const { follow, isLoading: isFollowLoading } = useFollow()
@@ -332,7 +334,41 @@ export default function Social() {
                         </div>
 
                         {/* Actions */}
-                        <div className="mt-2 flex items-center gap-1">
+                        <div className="mt-3 flex items-center gap-1 border-t border-gray-100 dark:border-gray-800 pt-2">
+                          {/* Like */}
+                          {(() => {
+                            const bookKey = `${item.user.handle}|${item.book.title}|${item.book.author}`
+                            const liked = isLiked(bookKey)
+                            return (
+                              <button
+                                onClick={() => liked ? unlikeBook(bookKey) : likeBook(bookKey)}
+                                className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors ${
+                                  liked
+                                    ? 'text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950'
+                                    : 'text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+                                }`}
+                              >
+                                <Heart size={14} className={liked ? 'fill-current' : ''} />
+                                {liked ? 'Liked' : 'Like'}
+                              </button>
+                            )
+                          })()}
+                          {/* Reply on Bluesky */}
+                          <button
+                            onClick={() => {
+                              const text = `Re: "${item.book.title || 'this book'}" by ${item.book.author || 'Unknown'} — `
+                              window.open(
+                                'https://bsky.app/intent/compose?text=' + encodeURIComponent(text),
+                                '_blank'
+                              )
+                            }}
+                            className="inline-flex items-center gap-1 px-2 py-1 text-xs text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded transition-colors"
+                            title="Reply on Bluesky"
+                          >
+                            <MessageCircle size={13} />
+                            Reply
+                          </button>
+                          {/* Share */}
                           <button
                             onClick={() => handleShare(item.book)}
                             className="inline-flex items-center gap-1 px-2 py-1 text-xs text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded transition-colors"
@@ -341,6 +377,7 @@ export default function Social() {
                             <Share2 size={13} />
                             Share
                           </button>
+                          {/* Recommend */}
                           <button
                             onClick={() => setRecommendBook(
                               recommendBook?.title === item.book.title && recommendBook?.author === item.book.author ? null : item.book

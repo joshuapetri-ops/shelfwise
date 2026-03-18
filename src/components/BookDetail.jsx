@@ -12,7 +12,8 @@ import useAuth from '../hooks/useAuth';
 import useChallenges from '../hooks/useChallenges';
 import { deleteBook as pdsDeleteBook, writeBook as pdsWriteBook } from '../lib/pdsSync';
 import useToast from './Toast';
-import { ExternalLink, Trash2, Plus, Share2, Lock, Send } from 'lucide-react';
+import useLikes from '../hooks/useLikes';
+import { ExternalLink, Trash2, Plus, Share2, Lock, Send, Heart } from 'lucide-react';
 
 const SHELVES = [
   { key: 'reading', label: 'Reading' },
@@ -30,6 +31,10 @@ export default function BookDetail({ book, isOpen, onClose, onUpdate, onRemove, 
   const { agent, did, isAuthenticated } = useAuth();
   const toastCtx = useToast();
   const addToast = toastCtx?.addToast || (() => {});
+  const likesCtx = useLikes();
+  const { likeBook, unlikeBook, isLiked } = likesCtx || {};
+  const bookLikeKey = `self|${book.title}|${book.author}`;
+  const bookIsLiked = isLiked?.(bookLikeKey) ?? false;
   const { books, addBook } = useBooks();
   const { challenges } = useChallenges();
 
@@ -398,8 +403,19 @@ export default function BookDetail({ book, isOpen, onClose, onUpdate, onRemove, 
           </div>
         </div>
 
-        {/* ── Footer: Share + Remove ── */}
+        {/* ── Footer: Like + Share + Remove ── */}
         <div className="border-t border-gray-200 pt-4 dark:border-gray-700 flex flex-wrap gap-3">
+          <button
+            onClick={() => bookIsLiked ? unlikeBook?.(bookLikeKey) : likeBook?.(bookLikeKey)}
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+              bookIsLiked
+                ? 'text-red-500 bg-red-50 dark:bg-red-950 dark:text-red-400'
+                : 'text-gray-600 bg-gray-100 hover:text-red-500 hover:bg-red-50 dark:text-gray-400 dark:bg-gray-700 dark:hover:text-red-400 dark:hover:bg-red-950'
+            }`}
+          >
+            <Heart size={14} className={bookIsLiked ? 'fill-current' : ''} />
+            {bookIsLiked ? 'Liked' : 'Like'}
+          </button>
           <Button
             variant="secondary"
             size="sm"
