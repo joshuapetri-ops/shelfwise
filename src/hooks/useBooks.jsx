@@ -55,23 +55,22 @@ export function BooksProvider({ children }) {
         const keysToRemove = new Set(dupeKeys)
         const dupeBooks = books.filter((b) => keysToRemove.has(b.key))
         const mergedData = new Map([...seen.values()].map((b) => [b.key, b]))
+
+        // Store dupes for PDS deletion when auth is ready (in the sync effect)
+        pendingPdsDeletions.current = dupeBooks
+
         Promise.resolve().then(() => {
           setBooks((prev) => prev
             .filter((b) => !keysToRemove.has(b.key))
             .map((b) => mergedData.has(b.key) ? { ...b, ...mergedData.get(b.key) } : b)
           )
-          // Also delete duplicate PDS records
-          if (auth?.isAuthenticated && auth.agent && auth.did) {
-            for (const book of dupeBooks) {
-              deleteBook(auth.agent, auth.did, book).catch(() => {})
-            }
-          }
         })
       }
     }
-  }, [books, auth])
+  }, [books])
   const hasSynced = useRef(false)
   const hasEnriched = useRef(false)
+  const pendingPdsDeletions = useRef([])
 
   // Persist to localStorage on every change
   useEffect(() => {
@@ -88,6 +87,14 @@ export function BooksProvider({ children }) {
         // Process any pending writes first
         await processSyncQueue(auth.agent, auth.did)
 
+        // Delete any pending duplicates from bootstrap dedup
+        if (pendingPdsDeletions.current.length > 0) {
+          for (const book of pendingPdsDeletions.current) {
+            deleteBook(auth.agent, auth.did, book).catch(() => {})
+          }
+          pendingPdsDeletions.current = []
+        }
+
         // Fetch books from PDS
         const rawPdsBooks = await fetchBooks(auth.agent, auth.did)
 
@@ -99,8 +106,8 @@ export function BooksProvider({ children }) {
           if (!ta || ta === '|') { pdsSeen.set(book.key, book); continue }
           if (pdsSeen.has(ta)) {
             const existing = pdsSeen.get(ta)
-            const existingScore = (existing.key?.startsWith('/works/') ? 2 : 0) + (existing.coverId ? 1 : 0)
-            const newScore = (book.key?.startsWith('/works/') ? 2 : 0) + (book.coverId ? 1 : 0)
+            const existingScore = (existing.key?.startsWith('/works/') ? 2 : 0) + (existing.coverId ? 1 : 0) + (existing.ratings?.overall ? 1 : 0) + ((existing.subjects?.length || 0) > 0 ? 1 : 0)
+            const newScore = (book.key?.startsWith('/works/') ? 2 : 0) + (book.coverId ? 1 : 0) + (book.ratings?.overall ? 1 : 0) + ((book.subjects?.length || 0) > 0 ? 1 : 0)
             if (newScore > existingScore) {
               pdsToDelete.push(existing)
               pdsSeen.set(ta, { ...book, ratings: { ...existing.ratings, ...book.ratings }, notes: book.notes || existing.notes })
