@@ -337,7 +337,7 @@ export default function Social() {
                         <div className="mt-3 flex items-center gap-1 border-t border-gray-100 dark:border-gray-800 pt-2">
                           {/* Like */}
                           {(() => {
-                            const bookKey = `${item.user.handle}|${item.book.title}|${item.book.author}`
+                            const bookKey = `${(item.book.title || '').toLowerCase()}|${(item.book.author || '').toLowerCase()}`
                             const liked = isLiked(bookKey)
                             return (
                               <button

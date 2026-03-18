@@ -33,7 +33,7 @@ export default function BookDetail({ book, isOpen, onClose, onUpdate, onRemove, 
   const addToast = toastCtx?.addToast || (() => {});
   const likesCtx = useLikes();
   const { likeBook, unlikeBook, isLiked } = likesCtx || {};
-  const bookLikeKey = `self|${book.title}|${book.author}`;
+  const bookLikeKey = `${(book.title || '').toLowerCase()}|${(book.author || '').toLowerCase()}`;
   const bookIsLiked = isLiked?.(bookLikeKey) ?? false;
   const { books, addBook } = useBooks();
   const { challenges } = useChallenges();
