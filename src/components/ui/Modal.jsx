@@ -26,7 +26,7 @@ export default function Modal({ isOpen, onClose, title, children }) {
     const panel = panelRef.current
     if (!panel) return
     // Only enable swipe if scrolled to top
-    if (panel.scrollTop > 0) return
+    if (panel.scrollHeight > panel.clientHeight && panel.scrollTop > 5) return
     touchStartY.current = e.touches[0].clientY
     touchDeltaY.current = 0
   }, [])

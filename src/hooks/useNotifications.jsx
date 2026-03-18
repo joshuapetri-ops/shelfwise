@@ -24,10 +24,12 @@ export function NotificationsProvider({ children }) {
   const [notifications, setNotifications] = useState(load)
   const auth = useAuth()
   const hasChecked = useRef(false)
+  const notificationsRef = useRef(notifications)
 
-  // Persist
+  // Persist and keep ref in sync
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(notifications))
+    notificationsRef.current = notifications
   }, [notifications])
 
   // Check for new followers on auth
@@ -49,7 +51,7 @@ export function NotificationsProvider({ children }) {
           for (const n of notifRes.data.notifications || []) {
             const id = `${n.reason}-${n.author.did}-${n.indexedAt}`
             // Skip if already seen
-            if (notifications.some((existing) => existing.id === id)) continue
+            if (notificationsRef.current.some((existing) => existing.id === id)) continue
 
             if (n.reason === 'follow') {
               newNotifs.push({
@@ -71,7 +73,7 @@ export function NotificationsProvider({ children }) {
       } catch { /* non-fatal */ }
     }
     check()
-  }, [auth, notifications])
+  }, [auth])
 
   const unreadCount = notifications.filter((n) => !n.read).length
 
