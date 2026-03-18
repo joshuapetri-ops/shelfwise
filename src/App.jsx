@@ -13,6 +13,7 @@ import Onboarding from './pages/Onboarding'
 import OAuthCallback from './pages/OAuthCallback'
 import Profile from './pages/Profile'
 import Stats from './pages/Stats'
+import YearInReview from './pages/YearInReview'
 import useBooks from './hooks/useBooks'
 import useCriteria from './hooks/useCriteria'
 import useSettings from './hooks/useSettings'
@@ -105,6 +106,7 @@ export default function App() {
           <Route path="/challenges" element={<Challenges />} />
           <Route path="/for-you" element={<ForYou />} />
           <Route path="/stats" element={<Stats />} />
+          <Route path="/year-in-review" element={<YearInReview />} />
           <Route path="/oauth/callback" element={<OAuthCallback />} />
           <Route path="/settings" element={<Settings onLogout={() => setOnboarded(false)} />} />
           <Route path="*" element={<Navigate to="/" replace />} />

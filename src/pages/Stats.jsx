@@ -194,9 +194,19 @@ export default function Stats() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
-      <div className="flex items-center gap-3 mb-8">
-        <BarChart3 className="w-7 h-7 text-indigo-600 dark:text-indigo-400" />
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Reading Stats</h1>
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-3">
+          <BarChart3 className="w-7 h-7 text-indigo-600 dark:text-indigo-400" />
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Reading Stats</h1>
+        </div>
+        {stats.read > 0 && (
+          <Link
+            to="/year-in-review"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-950 transition-colors"
+          >
+            Year in Review
+          </Link>
+        )}
       </div>
 
       {/* Summary cards */}
