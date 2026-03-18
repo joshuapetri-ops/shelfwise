@@ -565,7 +565,7 @@ export default function Onboarding({ onComplete, importBooks: importBooksProp })
     updateSetting('language', accountData.language || 'en');
 
     if (onComplete) onComplete();
-    navigate('/');
+    navigate('/social');
   };
 
   return (
