@@ -109,10 +109,6 @@ export default function Settings({ onLogout }) {
   const setShareActivity = (v) => updateSetting('shareActivity', v)
   const setShowInDiscovery = (v) => updateSetting('showInDiscovery', v)
 
-  const maskedApiKey = import.meta.env.VITE_ANTHROPIC_API_KEY
-    ? '****' + String(import.meta.env.VITE_ANTHROPIC_API_KEY).slice(-4)
-    : null
-
   // --- Criteria handlers ---
   const handleAddCriterion = () => {
     if (!newName.trim()) return
@@ -910,22 +906,7 @@ export default function Settings({ onLogout }) {
           </div>
         )}
 
-        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500 dark:text-gray-400">
-          <div>
-            {maskedApiKey ? (
-              <span>
-                API Key:{' '}
-                <code className="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">
-                  {maskedApiKey}
-                </code>
-              </span>
-            ) : (
-              <span>
-                API Key: <span className="text-amber-600 dark:text-amber-400">Not configured</span>
-                <span className="ml-1">&mdash; set VITE_ANTHROPIC_API_KEY in .env.local for AI recommendations</span>
-              </span>
-            )}
-          </div>
+        <div className="flex flex-wrap items-center justify-end gap-2 text-xs text-gray-500 dark:text-gray-400">
           <span>Shelfwise v0.1.0</span>
         </div>
 

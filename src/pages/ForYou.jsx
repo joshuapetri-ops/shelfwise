@@ -15,8 +15,6 @@ export default function ForYou() {
   const [customPrompt, setCustomPrompt] = useState('')
   const [addedSet, setAddedSet] = useState(new Set())
 
-  const apiKeySet = Boolean(import.meta.env.VITE_ANTHROPIC_API_KEY)
-
   const handleGetRecommendations = async () => {
     setLoading(true)
     setError(null)
@@ -40,34 +38,6 @@ export default function ForYou() {
       shelf: 'wantToRead',
     })
     setAddedSet((prev) => new Set([...prev, index]))
-  }
-
-  if (!apiKeySet) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-        <Sparkles className="w-12 h-12 text-gray-400 dark:text-gray-500 mb-4" />
-        <h1 className="text-3xl font-bold mb-4 text-gray-900 dark:text-gray-100">
-          For You
-        </h1>
-        <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md">
-          AI-powered book recommendations are coming soon. In the meantime, discover books through search or see what your friends are reading.
-        </p>
-        <div className="flex gap-3">
-          <a
-            href="/search"
-            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600"
-          >
-            Search Books
-          </a>
-          <a
-            href="/social"
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 transition hover:bg-gray-50 dark:hover:bg-gray-800"
-          >
-            Social Feed
-          </a>
-        </div>
-      </div>
-    )
   }
 
   return (
