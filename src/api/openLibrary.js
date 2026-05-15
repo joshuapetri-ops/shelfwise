@@ -152,45 +152,14 @@ async function enrichWithCovers(results) {
 
 async function searchWithClaude(query, limit) {
   try {
-    const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
-    if (!apiKey) return [];
-
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('/api/claude', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 800,
-        messages: [{
-          role: 'user',
-          content: `Find real published books that closely match this exact search: "${query}"
-
-Rules:
-- The title must closely match the search query
-- If the query includes an author name, the results MUST be by that author
-- If you don't know of any books that closely match, return an empty array []
-- Do NOT return loosely related books with similar words in the title
-- Only return books you are confident actually exist
-
-Return up to ${limit} books as a JSON array. Each object: title, author, year, isbn (ISBN-13 or null). If no close matches exist, return []. No markdown fences, just the raw JSON array.`,
-        }],
-      }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'search', query, limit }),
     });
+    if (!res.ok) return [];
 
-    const aiData = await resp.json();
-    const text = aiData.content
-      ?.filter((b) => b.type === 'text')
-      .map((b) => b.text)
-      .join('') || '[]';
-    const clean = text.replace(/```json|```/g, '').trim();
-    const match = clean.match(/\[[\s\S]*\]/);
-    const parsed = JSON.parse(match ? match[0] : clean);
-
+    const parsed = await res.json();
     if (!Array.isArray(parsed) || parsed.length === 0) return [];
 
     const mapped = parsed.map((b, i) => ({
@@ -210,83 +179,32 @@ Return up to ${limit} books as a JSON array. Each object: title, author, year, i
 }
 
 async function searchWithClaudeWeb(query) {
-  const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
-  if (!apiKey) return [];
-
-  const headers = {
-    'Content-Type': 'application/json',
-    'x-api-key': apiKey,
-    'anthropic-version': '2023-06-01',
-    'anthropic-dangerous-direct-browser-access': 'true',
-  };
-
-  const userPrompt = `Search the web for the book "${query}". Tell me its exact title, author, publication year, and ISBN-13 number.`;
-
-  // Step 1: web search to gather data
-  const step1 = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1000,
-      tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-      messages: [{ role: 'user', content: userPrompt }],
-    }),
-  });
-
-  const step1Data = await step1.json();
-
-  // Wait 2 seconds before the formatting call to avoid rate limit
-  await new Promise((resolve) => setTimeout(resolve, 2000));
-
-  // Step 2: pass the web search response back and ask for clean JSON
-  const step2Options = {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 500,
-      messages: [
-        { role: 'user', content: userPrompt },
-        { role: 'assistant', content: step1Data.content },
-        { role: 'user', content: 'Now return ONLY a JSON array containing one object with: title, author, year, isbn. No markdown fences, no explanation, just the raw JSON array.' },
-      ],
-    }),
-  };
-
-  let step2Resp = await fetch('https://api.anthropic.com/v1/messages', step2Options);
-  if (step2Resp.status === 429) {
-    await new Promise((resolve) => setTimeout(resolve, 3000));
-    step2Resp = await fetch('https://api.anthropic.com/v1/messages', step2Options);
-  }
-
-  const step2Data = await step2Resp.json();
-  const text = (step2Data.content || [])
-    .filter((b) => b.type === 'text')
-    .map((b) => b.text)
-    .join('');
-  const clean = text.replace(/```json|```/g, '').trim();
-  const match = clean.match(/\[[\s\S]*\]/);
-  let results;
   try {
-    results = JSON.parse(match ? match[0] : clean);
+    const res = await fetch('/api/claude', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'search-web', query }),
+    });
+    if (!res.ok) return [];
+
+    const parsed = await res.json();
+    const arr = Array.isArray(parsed) ? parsed : [parsed];
+    if (arr.length === 0) return [];
+
+    const mapped = arr.map((b, i) => ({
+      key: '/works/web_' + encodeURIComponent(b.title || query).slice(0, 20) + '_' + i,
+      title: b.title || query,
+      author: b.author || 'Unknown',
+      year: b.year || null,
+      coverId: null,
+      isbn: b.isbn || null,
+      subjects: [],
+    }));
+
+    return enrichWithCovers(mapped);
   } catch {
     return [];
   }
-
-  const arr = Array.isArray(results) ? results : [results];
-
-  const mapped = arr.map((b, i) => ({
-    key: '/works/web_' + encodeURIComponent(b.title || query).slice(0, 20) + '_' + i,
-    title: b.title || query,
-    author: b.author || 'Unknown',
-    year: b.year || null,
-    coverId: null,
-    isbn: b.isbn || null,
-    subjects: [],
-  }));
-
-  return enrichWithCovers(mapped);
 }
 
 /**

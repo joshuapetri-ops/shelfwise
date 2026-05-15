@@ -1,11 +1,5 @@
-const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
-const MODEL = "claude-sonnet-4-20250514";
-const MAX_TOKENS = 1024;
-
-const LANGUAGE_NAMES = { en: 'English', es: 'Spanish', fr: 'French', de: 'German', pt: 'Portuguese', it: 'Italian', ja: 'Japanese', zh: 'Chinese', ko: 'Korean', ru: 'Russian', ar: 'Arabic', hi: 'Hindi', nl: 'Dutch', sv: 'Swedish', pl: 'Polish' }
-
 /**
- * Get book recommendations from Claude based on a user's library and prompt.
+ * Get book recommendations from Claude (proxied through /api/claude on the server).
  *
  * @param {string} prompt - The user's request or preference description.
  * @param {Array<{title: string, author: string}>} books - The user's current library.
@@ -13,90 +7,22 @@ const LANGUAGE_NAMES = { en: 'English', es: 'Spanish', fr: 'French', de: 'German
  * @returns {Promise<Array<{title: string, author: string, reason: string}>>} Recommended books.
  */
 export async function getRecommendations(prompt, books = [], language = 'en') {
-  const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
-
-  if (!apiKey) {
-    throw new Error(
-      "Missing VITE_ANTHROPIC_API_KEY. Set it in your .env file."
-    );
-  }
-
-  const libraryDescription =
-    books.length > 0
-      ? books.map((b) => `- "${b.title}" by ${b.author}`).join("\n")
-      : "The user has no books in their library yet.";
-
-  const systemPrompt = [
-    "You are a knowledgeable book recommendation assistant.",
-    "The user will share their current library and a request.",
-    "Respond ONLY with a valid JSON array of recommended books.",
-    "Each element must have: title (string), author (string), reason (string).",
-    "Return between 1 and 10 recommendations. Do not include any text outside the JSON array.",
-  ].join(" ");
-
-  let userMessageText = [
-    "Here is my current library:",
-    libraryDescription,
-    "",
-    `My request: ${prompt}`,
-  ].join("\n");
-
-  if (language && language !== 'en') {
-    const languageName = LANGUAGE_NAMES[language] || language;
-    userMessageText += `\nPrefer books available in ${languageName}. If suggesting translated works, mention the translator.`;
-  }
-
-  const userMessage = userMessageText;
-
-  const response = await fetch(ANTHROPIC_API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-      "anthropic-dangerous-direct-browser-access": "true",
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: MAX_TOKENS,
-      system: systemPrompt,
-      messages: [{ role: "user", content: userMessage }],
-    }),
+  const res = await fetch('/api/claude', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'recommendations', prompt, books, language }),
   });
 
-  if (!response.ok) {
-    const errorBody = await response.text().catch(() => "");
-    throw new Error(
-      `Anthropic API request failed: ${response.status} ${response.statusText}${
-        errorBody ? ` — ${errorBody}` : ""
-      }`
-    );
+  if (res.status === 429) {
+    throw new Error('Too many recommendation requests. Please wait a moment and try again.');
+  }
+  if (!res.ok) {
+    throw new Error(`Recommendations request failed: ${res.status} ${res.statusText}`);
   }
 
-  const data = await response.json();
-
-  const textBlock = data.content?.find((block) => block.type === "text");
-
-  if (!textBlock || !textBlock.text) {
-    throw new Error("No text content in Anthropic API response");
+  const data = await res.json();
+  if (!Array.isArray(data)) {
+    throw new Error('Recommendations response was not a JSON array');
   }
-
-  try {
-    const recommendations = JSON.parse(textBlock.text.trim());
-
-    if (!Array.isArray(recommendations)) {
-      throw new Error("Response is not a JSON array");
-    }
-
-    return recommendations;
-  } catch (parseError) {
-    // Try to extract a JSON array from the response in case there is surrounding text.
-    const match = textBlock.text.match(/\[[\s\S]*\]/);
-    if (match) {
-      return JSON.parse(match[0]);
-    }
-    throw new Error(
-      `Failed to parse recommendations from response: ${parseError.message}`
-    );
-  }
+  return data;
 }
